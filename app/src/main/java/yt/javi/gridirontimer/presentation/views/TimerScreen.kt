@@ -1,7 +1,6 @@
 package yt.javi.gridirontimer.presentation.views
 
 import android.annotation.SuppressLint
-import android.content.res.Resources
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +28,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
-import androidx.wear.compose.material.Colors
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import androidx.wear.tooling.preview.devices.WearDevices
@@ -88,7 +86,7 @@ fun TimerScreen(
                 timeoutViewModel
             )
         } else {
-            TimeOutScreen(timeoutTimeRemaining, timeoutState, timeoutViewModel)
+            TimeOutScreen(timeoutTimeRemaining, timeoutState, timeoutViewModel, gameClockRemaining)
         }
     }
 
@@ -149,7 +147,7 @@ private fun GameAndPlayClockScreen(
         if (playClockState !in listOf(
                 TimerState.Idle,
                 TimerState.Finished
-            ) && playClockRemaining < 1_000L
+            ) && playClockRemaining >= 500L
         ) {
             Text(
                 text = TimerUtils.formatSeconds(playClockRemaining),
@@ -167,7 +165,7 @@ private fun GameAndPlayClockScreen(
         Button(
             onClick = {
                 gameClockViewModel.pauseTimer()
-                playClockViewModel.pauseTimer()
+                playClockViewModel.cancelTimer()
                 timeoutViewModel.startTimer()
             },
             colors = ButtonDefaults.primaryButtonColors()
@@ -209,9 +207,10 @@ private fun FlagPlayClock(playClockViewModel: PlayClockViewModel) {
 private fun TimeOutScreen(
     timeoutTimeRemaining: Long,
     timeoutState: TimerState,
-    timeoutViewModel: TimeoutViewModel
+    timeoutViewModel: TimeoutViewModel,
+    gameClockRemaining: Long
 ) {
-    Text(text = stringResource(R.string.timeout))
+    Text(text = stringResource(R.string.game_time, TimerUtils.formatTime(gameClockRemaining)))
     Text(
         text = TimerUtils.formatSeconds(timeoutTimeRemaining),
         style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Bold),
