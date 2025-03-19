@@ -13,6 +13,6 @@
     <string name="play_clock">Play Clock</string>
     <string name="_25s">25s</string>
     <string name="_40s">40s</string>
-    <string name="timeout">Time Out</string>
+    <string name="timeout">TO</string>
     <string name="stop">Stop</string>
 </resources>
