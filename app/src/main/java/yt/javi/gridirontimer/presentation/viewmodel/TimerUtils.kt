@@ -13,7 +13,6 @@ import android.os.VibrationEffect.DEFAULT_AMPLITUDE
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.compose.ui.text.intl.Locale
-import yt.javi.gridirontimer.presentation.viewmodel.TimerUtils.VibrationTimes.ONE
 import yt.javi.gridirontimer.presentation.viewmodel.TimerUtils.VibrationTimes.TWO
 
 object TimerUtils {
@@ -29,7 +28,7 @@ object TimerUtils {
         return String.format(Locale.current.platformLocale, "%02d", seconds)
     }
 
-    fun vibrate(context: Context, notification: VibrationTimes = ONE) {
+    fun vibrate(context: Context) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             (context.getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
         } else {
@@ -37,15 +36,7 @@ object TimerUtils {
             context.getSystemService(VIBRATOR_SERVICE) as Vibrator
         }
 
-        val effect = when (notification) {
-            TWO -> VibrationEffect.createWaveform(LongArray(2).apply {
-                set(0, 1000)
-                set(1, 1000)
-            }, 2)
-
-            else -> VibrationEffect.createOneShot(1500, DEFAULT_AMPLITUDE)
-        }
-        vibrator.vibrate(effect)
+        vibrator.vibrate(VibrationEffect.createOneShot(1500, DEFAULT_AMPLITUDE))
     }
 
     fun playSound(context: Context) {

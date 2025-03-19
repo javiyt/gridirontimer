@@ -1,6 +1,7 @@
 package yt.javi.gridirontimer.presentation.views
 
 import android.annotation.SuppressLint
+import android.content.res.Resources
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +17,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -27,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
+import androidx.wear.compose.material.Colors
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import androidx.wear.tooling.preview.devices.WearDevices
@@ -36,7 +39,6 @@ import yt.javi.gridirontimer.presentation.viewmodel.PlayClockViewModel
 import yt.javi.gridirontimer.presentation.viewmodel.TimeoutViewModel
 import yt.javi.gridirontimer.presentation.viewmodel.TimerState
 import yt.javi.gridirontimer.presentation.viewmodel.TimerUtils
-import yt.javi.gridirontimer.presentation.viewmodel.TimerUtils.VibrationTimes.TWO
 import yt.javi.gridirontimer.presentation.viewmodel.TimerViewModel
 
 @SuppressLint("StateFlowValueCalledInComposition")
@@ -91,25 +93,24 @@ fun TimerScreen(
     }
 
     LaunchedEffect(key1 = gameClockRemaining) {
-        if (gameClockRemaining == 120_000L && gameClockState is TimerState.Running) {
+        if (gameClockRemaining <= 120_000L && playClockRemaining >= 115_000L && gameClockState is TimerState.Running) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context)
-            TimerUtils.playSound(context)
+            //TimerUtils.playSound(context)
         }
     }
     LaunchedEffect(key1 = playClockRemaining) {
-        if (playClockRemaining == 10_000L && playClockState is TimerState.Running) {
+        if (playClockRemaining <= 10_000L && playClockState is TimerState.Running) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context)
-            TimerUtils.playSound(context)
+            //TimerUtils.playSound(context)
         }
     }
-
-    LaunchedEffect(key1 = playClockRemaining) {
-        if (playClockRemaining == 5_000L && playClockState is TimerState.Running) {
+    LaunchedEffect(key1 = timeoutTimeRemaining) {
+        if (timeoutTimeRemaining <= 5_000L && timeoutState is TimerState.Running) {
             Log.d("TimerScreen", "Vibration")
-            TimerUtils.vibrate(context, TWO)
-            TimerUtils.playSound(context)
+            TimerUtils.vibrate(context)
+            //TimerUtils.playSound(context)
         }
     }
 }
@@ -127,22 +128,36 @@ private fun GameAndPlayClockScreen(
 ) {
     Text(
         text = TimerUtils.formatTime(gameClockRemaining),
-        style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Bold),
+        style = TextStyle(
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (gameClockState is TimerState.Running) Color.White else Color.Gray
+        ),
         modifier = Modifier.clickable(true, onClick = {
             if (gameClockState is TimerState.Running) gameClockViewModel.pauseTimer() else gameClockViewModel.resumeTimer()
         }),
     )
     if (gameClockState !is TimerState.Finished) {
         Spacer(modifier = Modifier.width(16.dp))
+
         if (initialDuration == 20L * 60L * 1000L) {
             FlagPlayClock(playClockViewModel)
         } else {
             DualPlayClock(playClockViewModel)
         }
-        if (playClockState !in listOf(TimerState.Idle, TimerState.Finished)) {
+
+        if (playClockState !in listOf(
+                TimerState.Idle,
+                TimerState.Finished
+            ) && playClockRemaining < 1_000L
+        ) {
             Text(
                 text = TimerUtils.formatSeconds(playClockRemaining),
-                style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Bold),
+                style = TextStyle(
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (playClockState is TimerState.Running) Color.White else Color.Gray
+                ),
                 modifier = Modifier.clickable(true, onClick = {
                     if (playClockState is TimerState.Running) playClockViewModel.pauseTimer() else playClockViewModel.resumeTimer()
                 }),
@@ -196,6 +211,7 @@ private fun TimeOutScreen(
     timeoutState: TimerState,
     timeoutViewModel: TimeoutViewModel
 ) {
+    Text(text = stringResource(R.string.timeout))
     Text(
         text = TimerUtils.formatSeconds(timeoutTimeRemaining),
         style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Bold),
