@@ -91,7 +91,7 @@ fun TimerScreen(
     }
 
     LaunchedEffect(key1 = gameClockRemaining) {
-        if (gameClockRemaining <= 120_000L && playClockRemaining >= 115_000L && gameClockState is TimerState.Running) {
+        if ((gameClockRemaining.isTwoMinutesWarning() || gameClockRemaining.isFinalSeconds()) && gameClockState is TimerState.Running) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context)
             //TimerUtils.playSound(context)
@@ -239,3 +239,7 @@ fun TimerPreview() {
         )
     }
 }
+
+private fun Long.isTwoMinutesWarning() = this <= 120_000L && this >= 115_000L
+
+private fun Long.isFinalSeconds() = this <= 10_000L
