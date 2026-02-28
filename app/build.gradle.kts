@@ -1,19 +1,18 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "yt.javi.gridirontimer"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "yt.javi.gridirontimer"
         minSdk = 30
-        targetSdk = 34
-        versionCode = 2
-        versionName = "1.5"
+        targetSdk = 35
+        versionCode = 4
+        versionName = "1.6"
     }
 
     buildTypes {
@@ -27,12 +26,10 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+
     buildFeatures {
         compose = true
     }
