@@ -46,6 +46,12 @@ class PlayClockViewModel: ViewModel() {
         _state.value = TimerState.Idle
     }
 
+    fun stopAndReset(duration: Long) {
+        timer?.cancel()
+        _time.value = duration
+        _state.value = TimerState.Idle
+    }
+
     override fun onCleared() {
         super.onCleared()
         timer?.cancel()
