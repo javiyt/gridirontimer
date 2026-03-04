@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,7 +34,7 @@ import yt.javi.gridirontimer.presentation.MainActivity.Screen.Timer
 
 @Composable
 fun CustomTimerScreen(navController: NavController) {
-    var minutes by remember { mutableStateOf(0) }
+    var minutes by remember { mutableIntStateOf(0) }
     val bg = Brush.radialGradient(
         colors = listOf(Color(0xFF16243A), MaterialTheme.colors.background),
         radius = 360f

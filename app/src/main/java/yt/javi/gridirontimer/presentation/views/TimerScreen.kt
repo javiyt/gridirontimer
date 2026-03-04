@@ -542,6 +542,6 @@ fun TimerPreview() {
     }
 }
 
-private fun Long.isTwoMinutesWarning() = this <= 120_000L && this >= 115_000L
+private fun Long.isTwoMinutesWarning() = this in 115_000L..120_000L
 
 private fun Long.isFinalSeconds() = this <= 10_000L

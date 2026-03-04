@@ -69,12 +69,6 @@ class GameAndPlayClockScreenTest {
             resetFlagTimers = {}
         )
 
-        val callbacks2 = GameAndPlayClockScreenCallbacks(
-            startFlagPlayClock25 = {},
-            startSevenSecondClock = {},
-            resetFlagTimers = {}
-        )
-
         callbacks1.startFlagPlayClock25()
         callbacks1.startSevenSecondClock()
 

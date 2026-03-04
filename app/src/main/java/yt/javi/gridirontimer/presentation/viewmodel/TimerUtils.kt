@@ -40,7 +40,7 @@ object TimerUtils {
             return
         }
 
-        val timings = mutableListOf<Long>(0L)
+        val timings = mutableListOf(0L)
         repeat(pulses) { index ->
             timings.add(220L)
             if (index < pulses - 1) {

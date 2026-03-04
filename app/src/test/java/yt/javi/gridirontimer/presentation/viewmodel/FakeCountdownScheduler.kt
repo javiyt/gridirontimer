@@ -9,7 +9,7 @@ class FakeCountdownScheduler : CountdownScheduler {
         onTick: (Long) -> Unit,
         onFinish: () -> Unit
     ): CountdownHandle {
-        val handle = FakeCountdownHandle(durationMs, intervalMs, onTick, onFinish)
+        val handle = FakeCountdownHandle(durationMs, onTick, onFinish)
         timers.add(handle)
         return handle
     }
@@ -18,8 +18,7 @@ class FakeCountdownScheduler : CountdownScheduler {
 }
 
 class FakeCountdownHandle(
-    private val durationMs: Long,
-    private val intervalMs: Long,
+    durationMs: Long,
     private val onTick: (Long) -> Unit,
     private val onFinish: () -> Unit
 ) : CountdownHandle {
@@ -48,12 +47,4 @@ class FakeCountdownHandle(
         onFinish()
     }
 
-    fun tickAndMaybeFinish(stepMs: Long = intervalMs) {
-        remainingMs = (remainingMs - stepMs).coerceAtLeast(0L)
-        if (remainingMs == 0L) {
-            onFinish()
-        } else {
-            onTick(remainingMs)
-        }
-    }
 }
