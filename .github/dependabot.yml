@@ -6,7 +6,8 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "03:00"
+      time: "09:00"
+      timezone: "Europe/Madrid"
     open-pull-requests-limit: 5
     reviewers:
       - "javiyt"
@@ -16,15 +17,13 @@ updates:
       - "dependencies"
       - "gradle"
     commit-message:
-      prefix: "chore(deps):"
+      prefix: "chore"
       include: "scope"
     pull-request-branch-name:
       separator: "/"
     allow:
       - dependency-type: "direct"
-      - dependency-type: "indirect"
     rebase-strategy: "auto"
-    versioning-strategy: "auto"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -32,7 +31,8 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "03:00"
+      time: "09:00"
+      timezone: "Europe/Madrid"
     open-pull-requests-limit: 3
     reviewers:
       - "javiyt"
@@ -42,7 +42,7 @@ updates:
       - "dependencies"
       - "github-actions"
     commit-message:
-      prefix: "ci:"
+      prefix: "ci"
       include: "scope"
     pull-request-branch-name:
       separator: "/"
