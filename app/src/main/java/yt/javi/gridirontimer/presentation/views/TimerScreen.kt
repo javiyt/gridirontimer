@@ -2,12 +2,17 @@ package yt.javi.gridirontimer.presentation.views
 
 import android.annotation.SuppressLint
 import android.util.Log
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -18,11 +23,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,6 +38,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
+import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import androidx.wear.tooling.preview.devices.WearDevices
@@ -65,6 +74,12 @@ data class GameAndPlayClockScreenCallbacks(
     val resetFlagTimers: () -> Unit
 )
 
+private enum class FlagActiveButton {
+    NONE,
+    TWENTY_FIVE,
+    SEVEN
+}
+
 @Composable
 fun createTimerScreenViewModels(): TimerScreenViewModels = TimerScreenViewModels(
     gameClockViewModel = viewModel(),
@@ -88,6 +103,7 @@ fun TimerScreen(
     val gameClockRemaining by viewModels.gameClockViewModel.time.collectAsState()
     val playClockState by viewModels.playClockViewModel.state.collectAsState()
     val playClockRemaining by viewModels.playClockViewModel.time.collectAsState()
+    val playClockPresetDuration by viewModels.playClockViewModel.presetDuration.collectAsState()
     val sevenSecondClockState by viewModels.sevenSecondClockViewModel.state.collectAsState()
     val sevenSecondClockRemaining by viewModels.sevenSecondClockViewModel.time.collectAsState()
     val timeoutState by viewModels.timeoutViewModel.state.collectAsState()
@@ -102,6 +118,11 @@ fun TimerScreen(
         sevenSecondClockRemaining
     } else {
         playClockRemaining
+    }
+    val flagActiveButton = when {
+        sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused) -> FlagActiveButton.SEVEN
+        playClockState in listOf(TimerState.Running, TimerState.Paused) -> FlagActiveButton.TWENTY_FIVE
+        else -> FlagActiveButton.NONE
     }
     val resetFlagTimers by rememberUpdatedState(newValue = {
         viewModels.playClockViewModel.stopAndReset(25_000L)
@@ -142,32 +163,48 @@ fun TimerScreen(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        modifier = Modifier.fillMaxSize()
     ) {
-        if (timeoutState !in listOf(TimerState.Running, TimerState.Paused)) {
+        val bg = Brush.radialGradient(
+            colors = listOf(Color(0xFF132033), MaterialTheme.colors.background),
+            radius = 360f
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(bg)
+                .padding(14.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (timeoutState !in listOf(TimerState.Running, TimerState.Paused)) {
             GameAndPlayClockScreen(
                 isFlagMode,
                 GameAndPlayClockScreenState(
                     gameClockRemaining,
-                    gameClockState,
-                    viewModels.gameClockViewModel,
-                    viewModels.playClockViewModel,
+                            gameClockState,
+                            viewModels.gameClockViewModel,
+                            viewModels.playClockViewModel,
                     activePlayClockState,
                     activePlayClockRemaining,
                     viewModels.timeoutViewModel
                 ),
-                GameAndPlayClockScreenCallbacks(
-                    startFlagPlayClock25,
-                    startSevenSecondClock,
-                    resetFlagTimers
-                )
-            )
-        } else {
-            TimeOutScreen(timeoutTimeRemaining, timeoutState, viewModels.timeoutViewModel, gameClockRemaining)
+                        GameAndPlayClockScreenCallbacks(
+                            startFlagPlayClock25,
+                            startSevenSecondClock,
+                            resetFlagTimers
+                        ),
+                playClockPresetDuration = playClockPresetDuration,
+                flagActiveButton = flagActiveButton
+                    )
+                } else {
+                    TimeOutScreen(timeoutTimeRemaining, timeoutState, viewModels.timeoutViewModel, gameClockRemaining)
+                }
+            }
         }
     }
 
@@ -207,20 +244,23 @@ fun TimerScreen(
 private fun GameAndPlayClockScreen(
     isFlagMode: Boolean,
     state: GameAndPlayClockScreenState,
-    callbacks: GameAndPlayClockScreenCallbacks
+    callbacks: GameAndPlayClockScreenCallbacks,
+    playClockPresetDuration: Long?,
+    flagActiveButton: FlagActiveButton
 ) {
     GameClockDisplay(state.gameClockRemaining, state.gameClockState, state.gameClockViewModel)
     if (state.gameClockState !is TimerState.Finished) {
-        Spacer(modifier = Modifier.width(16.dp))
-        PlayClockSelector(isFlagMode, state.playClockViewModel, callbacks)
-        PlayClockDisplay(
-            isFlagMode,
-            state.playClockState,
-            state.playClockRemaining,
-            state.playClockViewModel,
-            callbacks.resetFlagTimers
+        Spacer(modifier = Modifier.height(10.dp))
+        PlayClockSelector(
+            isFlagMode = isFlagMode,
+            playClockViewModel = state.playClockViewModel,
+            callbacks = callbacks,
+            playClockState = state.playClockState,
+            playClockRemaining = state.playClockRemaining,
+            playClockPresetDuration = playClockPresetDuration,
+            flagActiveButton = flagActiveButton
         )
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         TimeoutButton(isFlagMode, state, callbacks)
     }
 }
@@ -231,64 +271,67 @@ private fun GameClockDisplay(
     gameClockState: TimerState,
     gameClockViewModel: TimerViewModel
 ) {
-    Text(
-        text = TimerUtils.formatTime(gameClockRemaining),
-        style = TextStyle(
-            fontSize = 30.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (gameClockState is TimerState.Running) Color.White else Color.Gray
-        ),
-        modifier = Modifier.clickable(true, onClick = {
-            when (gameClockState) {
-                is TimerState.Running -> gameClockViewModel.pauseTimer()
-                is TimerState.Paused -> gameClockViewModel.resumeTimer()
-                else -> {}
-            }
-        }),
+    val gameClockProgress by animateFloatAsState(
+        targetValue = if (gameClockState is TimerState.Running) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = 300f),
+        label = "game_clock_progress"
     )
+    val gameClockColor = lerp(MaterialTheme.colors.onSurface, MaterialTheme.colors.onBackground, gameClockProgress)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = TimerUtils.formatTime(gameClockRemaining),
+            style = TextStyle(
+                fontSize = 44.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = gameClockColor,
+                letterSpacing = 0.6.sp
+            ),
+            modifier = Modifier.clickable(true, onClick = {
+                when (gameClockState) {
+                    is TimerState.Running -> gameClockViewModel.pauseTimer()
+                    is TimerState.Paused -> gameClockViewModel.resumeTimer()
+                    else -> {}
+                }
+            }),
+        )
+        Text(
+            text = when (gameClockState) {
+                is TimerState.Running -> stringResource(R.string.status_running)
+                is TimerState.Paused -> stringResource(R.string.status_paused)
+                else -> stringResource(R.string.status_ready)
+            },
+            style = TextStyle(
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colors.onSurface
+            )
+        )
+    }
 }
 
 @Composable
 private fun PlayClockSelector(
     isFlagMode: Boolean,
     playClockViewModel: PlayClockViewModel,
-    callbacks: GameAndPlayClockScreenCallbacks
-) {
-    if (isFlagMode) {
-        FlagPlayClock(callbacks.startFlagPlayClock25, callbacks.startSevenSecondClock)
-    } else {
-        DualPlayClock(playClockViewModel)
-    }
-}
-
-@Composable
-private fun PlayClockDisplay(
-    isFlagMode: Boolean,
+    callbacks: GameAndPlayClockScreenCallbacks,
     playClockState: TimerState,
     playClockRemaining: Long,
-    playClockViewModel: PlayClockViewModel,
-    resetFlagTimers: () -> Unit
+    playClockPresetDuration: Long?,
+    flagActiveButton: FlagActiveButton
 ) {
-    val shouldShowPlayClock = playClockState !in listOf(TimerState.Idle, TimerState.Finished) && playClockRemaining >= 500L
-    if (shouldShowPlayClock) {
-        Text(
-            text = TimerUtils.formatSeconds(playClockRemaining),
-            style = TextStyle(
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (playClockState is TimerState.Running) Color.White else Color.Gray
-            ),
-            modifier = Modifier.clickable(true, onClick = {
-                if (isFlagMode) {
-                    resetFlagTimers()
-                } else {
-                    when (playClockState) {
-                        is TimerState.Running -> playClockViewModel.pauseTimer()
-                        is TimerState.Paused -> playClockViewModel.resumeTimer()
-                        else -> {}
-                    }
-                }
-            }),
+    if (isFlagMode) {
+        FlagPlayClock(
+            startFlagPlayClock25 = callbacks.startFlagPlayClock25,
+            startSevenSecondClock = callbacks.startSevenSecondClock,
+            activeButton = flagActiveButton,
+            playClockRemaining = playClockRemaining
+        )
+    } else {
+        DualPlayClock(
+            playClockViewModel = playClockViewModel,
+            playClockState = playClockState,
+            playClockRemaining = playClockRemaining,
+            playClockPresetDuration = playClockPresetDuration
         )
     }
 }
@@ -309,31 +352,55 @@ private fun TimeoutButton(
             }
             state.timeoutViewModel.startTimer()
         },
-        colors = ButtonDefaults.primaryButtonColors()
+        modifier = Modifier.width(92.dp),
+        colors = ButtonDefaults.secondaryButtonColors()
     ) {
         Text(text = stringResource(R.string.timeout))
     }
 }
 
 @Composable
-private fun DualPlayClock(playClockViewModel: PlayClockViewModel) {
+private fun DualPlayClock(
+    playClockViewModel: PlayClockViewModel,
+    playClockState: TimerState,
+    playClockRemaining: Long,
+    playClockPresetDuration: Long?
+) {
+    val isPlayClockActive = playClockState in listOf(TimerState.Running, TimerState.Paused)
+    val is25Active = isPlayClockActive && playClockPresetDuration == 25_000L
+    val is40Active = isPlayClockActive && playClockPresetDuration == 40_000L
+    val playClockLabel = TimerUtils.formatSeconds(playClockRemaining)
     Row {
         Button(
             onClick = {
                 playClockViewModel.startTimer(25_000L)
             },
-            colors = ButtonDefaults.primaryButtonColors(),
+            modifier = Modifier.width(88.dp),
+            colors = ButtonDefaults.primaryButtonColors(
+                backgroundColor = MaterialTheme.colors.primary,
+                contentColor = MaterialTheme.colors.onPrimary
+            ),
         ) {
-            Text(text = stringResource(R.string._25s))
+            Text(
+                text = if (is25Active) playClockLabel else stringResource(R.string._25s),
+                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            )
         }
         Spacer(modifier = Modifier.width(16.dp))
         Button(
             onClick = {
                 playClockViewModel.startTimer(40_000L)
             },
-            colors = ButtonDefaults.primaryButtonColors()
+            modifier = Modifier.width(88.dp),
+            colors = ButtonDefaults.secondaryButtonColors(
+                backgroundColor = MaterialTheme.colors.secondary,
+                contentColor = MaterialTheme.colors.onSecondary
+            )
         ) {
-            Text(text = stringResource(R.string._40s))
+            Text(
+                text = if (is40Active) playClockLabel else stringResource(R.string._40s),
+                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            )
         }
     }
 }
@@ -341,21 +408,38 @@ private fun DualPlayClock(playClockViewModel: PlayClockViewModel) {
 @Composable
 private fun FlagPlayClock(
     startFlagPlayClock25: () -> Unit,
-    startSevenSecondClock: () -> Unit
+    startSevenSecondClock: () -> Unit,
+    activeButton: FlagActiveButton,
+    playClockRemaining: Long
 ) {
+    val activeLabel = TimerUtils.formatSeconds(playClockRemaining)
     Row {
         Button(
             onClick = startFlagPlayClock25,
-            colors = ButtonDefaults.primaryButtonColors(),
+            modifier = Modifier.width(88.dp),
+            colors = ButtonDefaults.primaryButtonColors(
+                backgroundColor = MaterialTheme.colors.primary,
+                contentColor = MaterialTheme.colors.onPrimary
+            ),
         ) {
-            Text(text = stringResource(R.string._25s))
+            Text(
+                text = if (activeButton == FlagActiveButton.TWENTY_FIVE) activeLabel else stringResource(R.string._25s),
+                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            )
         }
         Spacer(modifier = Modifier.width(16.dp))
         Button(
             onClick = startSevenSecondClock,
-            colors = ButtonDefaults.primaryButtonColors(),
+            modifier = Modifier.width(88.dp),
+            colors = ButtonDefaults.secondaryButtonColors(
+                backgroundColor = MaterialTheme.colors.secondary,
+                contentColor = MaterialTheme.colors.onSecondary
+            ),
         ) {
-            Text(text = stringResource(R.string._7s))
+            Text(
+                text = if (activeButton == FlagActiveButton.SEVEN) activeLabel else stringResource(R.string._7s),
+                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            )
         }
     }
 }
@@ -367,10 +451,28 @@ private fun TimeOutScreen(
     timeoutViewModel: TimeoutViewModel,
     gameClockRemaining: Long
 ) {
-    Text(text = stringResource(R.string.game_time, TimerUtils.formatTime(gameClockRemaining)))
+    val timeoutProgress by animateFloatAsState(
+        targetValue = if (timeoutState is TimerState.Running) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 260f),
+        label = "timeout_progress"
+    )
+    val timeoutColor = lerp(MaterialTheme.colors.onSurface, MaterialTheme.colors.secondary, timeoutProgress)
+    Text(
+        text = stringResource(R.string.game_time, TimerUtils.formatTime(gameClockRemaining)),
+        style = TextStyle(
+            fontSize = 17.sp,
+            color = MaterialTheme.colors.onSurface,
+            textAlign = TextAlign.Center
+        )
+    )
     Text(
         text = TimerUtils.formatSeconds(timeoutTimeRemaining),
-        style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Bold),
+        style = TextStyle(
+            fontSize = 54.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = timeoutColor,
+            letterSpacing = 0.4.sp
+        ),
         modifier = Modifier.clickable(true, onClick = {
             when (timeoutState) {
                 is TimerState.Running -> timeoutViewModel.pauseTimer()
@@ -383,9 +485,10 @@ private fun TimeOutScreen(
         onClick = {
             timeoutViewModel.stopTimer()
         },
-        colors = ButtonDefaults.primaryButtonColors()
+        modifier = Modifier.width(100.dp),
+        colors = ButtonDefaults.secondaryButtonColors()
     ) {
-        Text(text = stringResource(R.string.stop))
+        Text(text = stringResource(R.string.stop), style = TextStyle(fontWeight = FontWeight.Bold))
     }
 }
 

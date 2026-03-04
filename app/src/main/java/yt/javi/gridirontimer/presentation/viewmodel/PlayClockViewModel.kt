@@ -16,8 +16,18 @@ class PlayClockViewModel(
     private val _state = MutableStateFlow<TimerState>(TimerState.Idle)
     val state: StateFlow<TimerState> = _state.asStateFlow()
 
+    private val _presetDuration = MutableStateFlow<Long?>(null)
+    val presetDuration: StateFlow<Long?> = _presetDuration.asStateFlow()
+
     fun startTimer(duration: Long) {
+        startTimerInternal(duration, updatePreset = true)
+    }
+
+    private fun startTimerInternal(duration: Long, updatePreset: Boolean) {
         timer?.cancel()
+        if (updatePreset) {
+            _presetDuration.value = duration
+        }
         _state.value = TimerState.Running
         timer = countdownScheduler.create(duration, 1_000L, onTick = { millisUntilFinished ->
                 _time.value = millisUntilFinished
@@ -35,17 +45,19 @@ class PlayClockViewModel(
 
     fun resumeTimer() {
         if (state.value == TimerState.Paused) {
-            startTimer(_time.value)
+            startTimerInternal(_time.value, updatePreset = false)
         }
     }
 
     fun cancelTimer() {
         timer?.cancel()
+        _presetDuration.value = null
         _state.value = TimerState.Idle
     }
 
     fun stopAndReset(duration: Long) {
         timer?.cancel()
+        _presetDuration.value = null
         _time.value = duration
         _state.value = TimerState.Idle
     }
