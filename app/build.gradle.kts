@@ -1,11 +1,16 @@
+import org.gradle.testing.jacoco.tasks.JacocoReport
+
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kover)
+    jacoco
 }
 
 android {
     namespace = "yt.javi.gridirontimer"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "yt.javi.gridirontimer"
@@ -16,6 +21,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+        }
         release {
             isMinifyEnabled = true
             isDebuggable = false
@@ -26,12 +34,85 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = "11"
     }
 
     buildFeatures {
         compose = true
+    }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
+    }
+}
+
+jacoco {
+    toolVersion = libs.versions.jacoco.get()
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnit()
+    jvmArgs("--add-opens=java.base/java.lang=ALL-UNNAMED")
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+
+    val fileFilter = listOf(
+        "**/R.class",
+        "**/R$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*Test*.*",
+        "**/*\$Companion.class",
+        "**/*ComposableSingletons*",
+        "**/*Preview*.*",
+        "**/presentation/views/**",
+        "**/presentation/theme/**"
+    )
+
+    val debugTree = fileTree("${layout.buildDirectory.get().asFile}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
+
+    classDirectories.setFrom(debugTree)
+    sourceDirectories.setFrom(files("src/main/java"))
+    executionData.setFrom(fileTree(layout.buildDirectory.get().asFile) {
+        include(
+            "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec",
+            "jacoco/testDebugUnitTest.exec"
+        )
+    })
+}
+
+kover {
+    reports {
+        filters {
+            excludes {
+                classes(
+                    "yt.javi.gridirontimer.presentation.views.*",
+                    "yt.javi.gridirontimer.presentation.theme.*",
+                    "yt.javi.gridirontimer.presentation.*$*"
+                )
+            }
+        }
+        verify {
+            rule {
+                minBound(85)
+            }
+        }
     }
 }
 
@@ -51,6 +132,11 @@ dependencies {
     implementation(libs.lifecycle.runtime.ktx)
     implementation(libs.wear.phone.interactions)
     implementation(libs.wear.input)
+
+    testImplementation(libs.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.ui.test.junit4)
     debugImplementation(libs.ui.tooling)
