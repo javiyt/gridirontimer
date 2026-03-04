@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class PlayClockViewModel(
-    private val countdownScheduler: CountdownScheduler = AndroidCountdownScheduler()
+    private val countdownScheduler: CountdownScheduler = AndroidCountdownScheduler(),
+    private val timerConfig: TimerConfig = TimerConfigs.Default
 ): ViewModel() {
     private var timer: CountdownHandle? = null
 
@@ -29,7 +30,7 @@ class PlayClockViewModel(
             _presetDuration.value = duration
         }
         _state.value = TimerState.Running
-        timer = countdownScheduler.create(duration, 1_000L, onTick = { millisUntilFinished ->
+        timer = countdownScheduler.create(duration, timerConfig.tickIntervalMs, onTick = { millisUntilFinished ->
                 _time.value = millisUntilFinished
             }, onFinish = {
             _time.value = 0L

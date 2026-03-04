@@ -17,6 +17,17 @@ class TimeoutViewModelTest {
     }
 
     @Test
+    fun `startTimer uses configurable timeout duration`() {
+        val scheduler = FakeCountdownScheduler()
+        val fast = TimerConfig(timeoutDurationMs = 1_500L, tickIntervalMs = 100L)
+        val viewModel = TimeoutViewModel(scheduler, fast)
+
+        viewModel.startTimer()
+
+        assertEquals(1_500L, scheduler.latest().remainingMs)
+    }
+
+    @Test
     fun `tick and finish update timeout values`() {
         val scheduler = FakeCountdownScheduler()
         val viewModel = TimeoutViewModel(scheduler)
