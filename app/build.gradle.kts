@@ -9,12 +9,12 @@ plugins {
 
 android {
     namespace = "yt.javi.gridirontimer"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "yt.javi.gridirontimer"
         minSdk = 30
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 4
         versionName = "1.6"
     }
