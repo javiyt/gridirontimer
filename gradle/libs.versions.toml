@@ -2,7 +2,7 @@
 agp = "8.9.0"
 composeNavigation = "1.4.1"
 kotlin = "2.0.21"
-lifecycleRuntimeKtx = "2.8.7"
+lifecycleRuntimeKtx = "2.10.0"
 playServicesWearable = "19.0.0"
 composeBom = "2025.03.00"
 composeMaterial = "1.4.1"
