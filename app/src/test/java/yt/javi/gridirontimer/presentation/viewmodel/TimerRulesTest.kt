@@ -56,6 +56,6 @@ class TimerRulesTest {
         val fast = TimerConfigs.Fast
         assertTrue(TimerRules.shouldVibratePlayClockWarning(1_000L, TimerState.Running, fast))
         assertTrue(TimerRules.shouldVibrateTimeoutWarning(500L, TimerState.Running, fast))
-        assertEquals(4_000L, TimerRules.playClockDurationOnDoublePress(false, TimerState.Running, fast))
+        assertEquals(2_000L, TimerRules.playClockDurationOnDoublePress(false, TimerState.Running, fast))
     }
 }

@@ -20,13 +20,13 @@ object TimerConfigs {
     // Useful for local UI/manual tests to speed up flows.
     val Fast = TimerConfig(
         tickIntervalMs = 100L,
-        flagGameDurationMs = 2 * 60L * 1_000L,
-        flagPlayClockMs = 2_500L,
-        tacklePlayClockRunningMs = 4_000L,
+        flagGameDurationMs = 2_000L,
+        flagPlayClockMs = 1_500L,
+        tacklePlayClockRunningMs = 2_000L,
         flagSevenSecondMs = 700L,
-        timeoutDurationMs = 6_000L,
-        twoMinuteWarningStartMs = 12_000L,
-        twoMinuteWarningEndMs = 11_500L,
+        timeoutDurationMs = 2_000L,
+        twoMinuteWarningStartMs = 2_000L,
+        twoMinuteWarningEndMs = 1_500L,
         playClockWarningMs = 1_000L,
         timeoutWarningHighMs = 1_000L,
         timeoutWarningLowMs = 500L
