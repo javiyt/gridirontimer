@@ -60,7 +60,7 @@ object TimerUtils {
         val ringtone = RingtoneManager.getRingtone(
             context,
             RingtoneManager.getDefaultUri(TYPE_NOTIFICATION)
-        )
+        ) ?: return
         ringtone.audioAttributes = audioAttributes
 
         if (audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION) != 0) {
