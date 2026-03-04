@@ -1,13 +1,14 @@
 package yt.javi.gridirontimer.presentation.viewmodel
 
-import android.os.CountDownTimer
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class TimeoutViewModel: ViewModel() {
-    private var timer: CountDownTimer? = null
+class TimeoutViewModel(
+    private val countdownScheduler: CountdownScheduler = AndroidCountdownScheduler()
+): ViewModel() {
+    private var timer: CountdownHandle? = null
 
     private val _time = MutableStateFlow(0L)
     val time: StateFlow<Long> = _time.asStateFlow()
@@ -18,16 +19,13 @@ class TimeoutViewModel: ViewModel() {
     fun startTimer() {
         timer?.cancel()
         _state.value = TimerState.Running
-        timer = object : CountDownTimer(60_000, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
+        timer = countdownScheduler.create(60_000, 1_000L, onTick = { millisUntilFinished ->
                 _time.value = millisUntilFinished
-            }
-
-            override fun onFinish() {
-                _time.value = 0L
-                _state.value = TimerState.Finished
-            }
-        }.start()
+            }, onFinish = {
+            _time.value = 0L
+            _state.value = TimerState.Finished
+        })
+        timer?.start()
     }
 
     fun pauseTimer() {

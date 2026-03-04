@@ -37,6 +37,7 @@ import yt.javi.gridirontimer.R
 import yt.javi.gridirontimer.presentation.theme.GridironTimerTheme
 import yt.javi.gridirontimer.presentation.viewmodel.PlayClockViewModel
 import yt.javi.gridirontimer.presentation.viewmodel.TimeoutViewModel
+import yt.javi.gridirontimer.presentation.viewmodel.TimerRules
 import yt.javi.gridirontimer.presentation.viewmodel.TimerState
 import yt.javi.gridirontimer.presentation.viewmodel.TimerUtils
 import yt.javi.gridirontimer.presentation.viewmodel.TimerViewModel
@@ -63,7 +64,7 @@ fun TimerScreen(
     val sevenSecondClockRemaining by sevenSecondClockViewModel.time.collectAsState()
     val timeoutState by timeoutViewModel.state.collectAsState()
     val timeoutTimeRemaining by timeoutViewModel.time.collectAsState()
-    val isFlagMode = initialDuration == 20L * 60L * 1000L
+    val isFlagMode = TimerRules.isFlagMode(initialDuration)
     val activePlayClockState = if (isFlagMode && sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused)) {
         sevenSecondClockState
     } else {
@@ -100,7 +101,10 @@ fun TimerScreen(
             if (isFlagMode) {
                 startFlagPlayClock25()
             } else {
-                val playClockDuration = if (gameClockState is TimerState.Running) 40_000L else 25_000L
+                val playClockDuration = TimerRules.playClockDurationOnDoublePress(
+                    isFlagMode = false,
+                    gameClockState = gameClockState
+                )
                 playClockViewModel.startTimer(playClockDuration)
             }
         }
@@ -159,30 +163,27 @@ fun TimerScreen(
         }
     }
     LaunchedEffect(key1 = activePlayClockRemaining) {
-        if (activePlayClockRemaining.isWithinSecondMark(10_000L) && activePlayClockState is TimerState.Running) {
+        if (TimerRules.shouldVibratePlayClockWarning(activePlayClockRemaining, activePlayClockState)) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context)
             //TimerUtils.playSound(context)
         }
     }
     LaunchedEffect(key1 = timeoutTimeRemaining) {
-        if (
-            timeoutState is TimerState.Running &&
-            (timeoutTimeRemaining.isWithinSecondMark(10_000L) || timeoutTimeRemaining.isWithinSecondMark(5_000L))
-        ) {
+        if (TimerRules.shouldVibrateTimeoutWarning(timeoutTimeRemaining, timeoutState)) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context, pulses = 2)
             //TimerUtils.playSound(context)
         }
     }
     LaunchedEffect(key1 = timeoutState) {
-        if (timeoutState is TimerState.Finished) {
+        if (TimerRules.shouldVibrateOnTimeoutFinish(timeoutState)) {
             Log.d("TimerScreen", "Timeout finished vibration")
             TimerUtils.vibrate(context, pulses = 3)
         }
     }
     LaunchedEffect(key1 = sevenSecondClockState) {
-        if (isFlagMode && sevenSecondClockState is TimerState.Finished) {
+        if (TimerRules.shouldVibrateOnSevenSecondFinish(isFlagMode, sevenSecondClockState)) {
             Log.d("TimerScreen", "7-second clock finished vibration")
             TimerUtils.vibrate(context, pulses = 3)
         }
@@ -349,5 +350,3 @@ fun TimerPreview() {
 private fun Long.isTwoMinutesWarning() = this <= 120_000L && this >= 115_000L
 
 private fun Long.isFinalSeconds() = this <= 10_000L
-
-private fun Long.isWithinSecondMark(markMs: Long) = this <= markMs && this > markMs - 1_000L

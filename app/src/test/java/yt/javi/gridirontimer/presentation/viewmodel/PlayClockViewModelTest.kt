@@ -1,55 +1,69 @@
 package yt.javi.gridirontimer.presentation.viewmodel
 
-import android.os.Looper
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows.shadowOf
-import java.time.Duration
 
-@RunWith(RobolectricTestRunner::class)
 class PlayClockViewModelTest {
 
     @Test
-    fun `startTimer moves to running then finishes with zero time`() {
-        val viewModel = PlayClockViewModel()
+    fun `startTimer creates running countdown`() {
+        val scheduler = FakeCountdownScheduler()
+        val viewModel = PlayClockViewModel(scheduler)
 
         viewModel.startTimer(2_000L)
         assertTrue(viewModel.state.value is TimerState.Running)
+        assertTrue(scheduler.latest().started)
+    }
 
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(2_100))
-        assertTrue(viewModel.state.value is TimerState.Finished)
+    @Test
+    fun `onTick and onFinish update remaining and state`() {
+        val scheduler = FakeCountdownScheduler()
+        val viewModel = PlayClockViewModel(scheduler)
+
+        viewModel.startTimer(2_000L)
+        scheduler.latest().emitTick(1_000L)
+        assertEquals(1_000L, viewModel.time.value)
+        assertTrue(viewModel.state.value is TimerState.Running)
+
+        scheduler.latest().finish()
         assertEquals(0L, viewModel.time.value)
+        assertTrue(viewModel.state.value is TimerState.Finished)
     }
 
     @Test
     fun `pause and resume keep timer active`() {
-        val viewModel = PlayClockViewModel()
+        val scheduler = FakeCountdownScheduler()
+        val viewModel = PlayClockViewModel(scheduler)
         viewModel.startTimer(5_000L)
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1_100))
+        scheduler.latest().emitTick(4_000L)
 
         viewModel.pauseTimer()
         assertTrue(viewModel.state.value is TimerState.Paused)
+        assertTrue(scheduler.timers[0].canceled)
 
         viewModel.resumeTimer()
         assertTrue(viewModel.state.value is TimerState.Running)
+        assertEquals(2, scheduler.timers.size)
+        assertEquals(4_000L, scheduler.latest().remainingMs)
     }
 
     @Test
     fun `cancelTimer sets idle`() {
-        val viewModel = PlayClockViewModel()
+        val scheduler = FakeCountdownScheduler()
+        val viewModel = PlayClockViewModel(scheduler)
         viewModel.startTimer(5_000L)
 
         viewModel.cancelTimer()
 
         assertTrue(viewModel.state.value is TimerState.Idle)
+        assertTrue(scheduler.latest().canceled)
     }
 
     @Test
     fun `stopAndReset sets idle and resets configured duration`() {
-        val viewModel = PlayClockViewModel()
+        val scheduler = FakeCountdownScheduler()
+        val viewModel = PlayClockViewModel(scheduler)
         viewModel.startTimer(5_000L)
 
         viewModel.stopAndReset(7_000L)

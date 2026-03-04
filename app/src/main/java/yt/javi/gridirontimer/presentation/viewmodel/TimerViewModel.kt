@@ -1,12 +1,13 @@
 package yt.javi.gridirontimer.presentation.viewmodel
 
-import android.os.CountDownTimer
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class TimerViewModel : ViewModel() {
+class TimerViewModel(
+    private val countdownScheduler: CountdownScheduler = AndroidCountdownScheduler()
+) : ViewModel() {
 
     private val _state = MutableStateFlow<TimerState>(TimerState.Idle)
     val state: StateFlow<TimerState> = _state.asStateFlow()
@@ -14,22 +15,21 @@ class TimerViewModel : ViewModel() {
     private val _time = MutableStateFlow(0L)
     val time: StateFlow<Long> = _time.asStateFlow()
 
-    private var countDownTimer: CountDownTimer? = null
+    private var countDownTimer: CountdownHandle? = null
 
     fun startTimer(duration: Long) {
+        countDownTimer?.cancel()
         _state.value = TimerState.Running
-        countDownTimer = object : CountDownTimer(duration, 1000L) {
-            override fun onTick(millisUntilFinished: Long) {
+        countDownTimer = countdownScheduler.create(duration, 1_000L, onTick = { millisUntilFinished ->
                 _time.value = millisUntilFinished
                 if (millisUntilFinished == 0L){
-                    onFinish()
+                    _state.value = TimerState.Finished
                 }
-            }
-
-            override fun onFinish() {
-                _state.value = TimerState.Finished
-            }
-        }.start()
+            }, onFinish = {
+            _time.value = 0L
+            _state.value = TimerState.Finished
+        })
+        countDownTimer?.start()
     }
 
     fun pauseTimer() {
@@ -40,7 +40,14 @@ class TimerViewModel : ViewModel() {
     fun resumeTimer() {
         if (state.value is TimerState.Paused) {
             startTimer(_time.value)
+        } else {
+            _state.value = TimerState.Running
         }
-        _state.value = TimerState.Running
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        countDownTimer?.cancel()
+        countDownTimer = null
     }
 }
