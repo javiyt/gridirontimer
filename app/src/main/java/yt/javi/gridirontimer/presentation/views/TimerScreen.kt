@@ -155,21 +155,18 @@ fun TimerScreen(
         if ((gameClockRemaining.isTwoMinutesWarning() || gameClockRemaining.isFinalSeconds()) && gameClockState is TimerState.Running) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context)
-            //TimerUtils.playSound(context)
         }
     }
     LaunchedEffect(key1 = activePlayClockRemaining) {
         if (TimerRules.shouldVibratePlayClockWarning(activePlayClockRemaining, activePlayClockState)) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context)
-            //TimerUtils.playSound(context)
         }
     }
     LaunchedEffect(key1 = timeoutTimeRemaining) {
         if (TimerRules.shouldVibrateTimeoutWarning(timeoutTimeRemaining, timeoutState)) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context, pulses = 2)
-            //TimerUtils.playSound(context)
         }
     }
     LaunchedEffect(key1 = timeoutState) {
@@ -316,7 +313,11 @@ private fun TimeOutScreen(
         text = TimerUtils.formatSeconds(timeoutTimeRemaining),
         style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Bold),
         modifier = Modifier.clickable(true, onClick = {
-            if (timeoutState is TimerState.Running) timeoutViewModel.pauseTimer() else timeoutViewModel.resumeTimer()
+            when (timeoutState) {
+                is TimerState.Running -> timeoutViewModel.pauseTimer()
+                is TimerState.Paused -> timeoutViewModel.resumeTimer()
+                else -> {}
+            }
         }),
     )
     Button(
@@ -336,10 +337,10 @@ private fun handleStemPrimaryAction(
 ) {
     when {
         timeoutState in listOf(TimerState.Running, TimerState.Paused) -> {
-            if (timeoutState is TimerState.Running) {
-                viewModels.timeoutViewModel.pauseTimer()
-            } else {
-                viewModels.timeoutViewModel.resumeTimer()
+            when (timeoutState) {
+                is TimerState.Running -> viewModels.timeoutViewModel.pauseTimer()
+                is TimerState.Paused -> viewModels.timeoutViewModel.resumeTimer()
+                else -> {}
             }
         }
         gameClockState is TimerState.Running -> viewModels.gameClockViewModel.pauseTimer()
