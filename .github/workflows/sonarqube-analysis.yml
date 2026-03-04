@@ -37,6 +37,8 @@ jobs:
 
       - name: Build and generate coverage reports
         run: ./gradlew testDebugUnitTest koverXmlReport
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}
 
       - name: SonarQube Scan
         uses: SonarSource/sonarcloud-github-action@master

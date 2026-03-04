@@ -37,20 +37,28 @@ jobs:
       # Test execution
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}
 
       # Code coverage verification
       - name: Verify code coverage (>85%)
         run: ./gradlew koverVerify
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}
 
       # Generate coverage reports
       - name: Generate Kover coverage report
         if: always()
         run: ./gradlew koverXmlReport koverHtmlReport
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}
 
       # Static code analysis - Android Lint
       - name: Run Android Lint
         if: always()
         run: ./gradlew lint
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}
 
       # Upload coverage reports as artifacts
       - name: Upload Kover coverage reports
