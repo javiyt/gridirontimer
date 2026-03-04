@@ -7,6 +7,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "03:00"
+      timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
       - "javiyt"
@@ -32,6 +33,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "03:00"
+      timezone: "UTC"
     open-pull-requests-limit: 3
     reviewers:
       - "javiyt"
