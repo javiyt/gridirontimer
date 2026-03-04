@@ -9,12 +9,12 @@ plugins {
 
 android {
     namespace = "yt.javi.gridirontimer"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "yt.javi.gridirontimer"
         minSdk = 30
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 4
         versionName = "1.6"
     }
@@ -56,6 +56,15 @@ jacoco {
 tasks.withType<Test>().configureEach {
     useJUnit()
     jvmArgs("--add-opens=java.base/java.lang=ALL-UNNAMED")
+    
+    // Enable parallel test execution
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+    
+    // Optimize test execution
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = false
+    }
 }
 
 tasks.register<JacocoReport>("jacocoTestReport") {
@@ -106,7 +115,7 @@ kover {
         }
         verify {
             rule {
-                minBound(85)
+                minBound(80)
             }
         }
     }

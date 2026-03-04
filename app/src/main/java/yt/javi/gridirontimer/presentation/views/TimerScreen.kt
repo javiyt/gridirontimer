@@ -45,6 +45,8 @@ import androidx.wear.tooling.preview.devices.WearDevices
 import yt.javi.gridirontimer.R
 import yt.javi.gridirontimer.presentation.theme.GridironTimerTheme
 import yt.javi.gridirontimer.presentation.viewmodel.PlayClockViewModel
+import yt.javi.gridirontimer.presentation.viewmodel.TimerConfig
+import yt.javi.gridirontimer.presentation.viewmodel.TimerConfigs
 import yt.javi.gridirontimer.presentation.viewmodel.TimeoutViewModel
 import yt.javi.gridirontimer.presentation.viewmodel.TimerRules
 import yt.javi.gridirontimer.presentation.viewmodel.TimerState
@@ -94,6 +96,7 @@ fun TimerScreen(
     duration: Long,
     navController: NavController,
     initialDuration: Long,
+    timerConfig: TimerConfig = TimerConfigs.Default,
     viewModels: TimerScreenViewModels = createTimerScreenViewModels(),
     onStemPrimaryHandlerChange: (((() -> Unit)?) -> Unit)? = null,
     onStemPrimaryDoubleHandlerChange: (((() -> Unit)?) -> Unit)? = null,
@@ -108,7 +111,7 @@ fun TimerScreen(
     val sevenSecondClockRemaining by viewModels.sevenSecondClockViewModel.time.collectAsState()
     val timeoutState by viewModels.timeoutViewModel.state.collectAsState()
     val timeoutTimeRemaining by viewModels.timeoutViewModel.time.collectAsState()
-    val isFlagMode = TimerRules.isFlagMode(initialDuration)
+    val isFlagMode = TimerRules.isFlagMode(initialDuration, timerConfig)
     val activePlayClockState = if (isFlagMode && sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused)) {
         sevenSecondClockState
     } else {
@@ -125,22 +128,29 @@ fun TimerScreen(
         else -> FlagActiveButton.NONE
     }
     val resetFlagTimers by rememberUpdatedState(newValue = {
-        viewModels.playClockViewModel.stopAndReset(25_000L)
-        viewModels.sevenSecondClockViewModel.stopAndReset(7_000L)
+        viewModels.playClockViewModel.stopAndReset(timerConfig.flagPlayClockMs)
+        viewModels.sevenSecondClockViewModel.stopAndReset(timerConfig.flagSevenSecondMs)
     })
     val startFlagPlayClock25 by rememberUpdatedState(newValue = {
-        viewModels.sevenSecondClockViewModel.stopAndReset(7_000L)
-        viewModels.playClockViewModel.startTimer(25_000L)
+        viewModels.sevenSecondClockViewModel.stopAndReset(timerConfig.flagSevenSecondMs)
+        viewModels.playClockViewModel.startTimer(timerConfig.flagPlayClockMs)
     })
     val startSevenSecondClock by rememberUpdatedState(newValue = {
-        viewModels.playClockViewModel.stopAndReset(25_000L)
-        viewModels.sevenSecondClockViewModel.startTimer(7_000L)
+        viewModels.playClockViewModel.stopAndReset(timerConfig.flagPlayClockMs)
+        viewModels.sevenSecondClockViewModel.startTimer(timerConfig.flagSevenSecondMs)
     })
     val stemPrimaryAction by rememberUpdatedState(newValue = {
         handleStemPrimaryAction(timeoutState, gameClockState, viewModels)
     })
     val stemPrimaryDoubleAction by rememberUpdatedState(newValue = {
-        handleStemPrimaryDoubleAction(timeoutState, gameClockState, isFlagMode, viewModels, startFlagPlayClock25)
+        handleStemPrimaryDoubleAction(
+            timeoutState,
+            gameClockState,
+            isFlagMode,
+            viewModels,
+            startFlagPlayClock25,
+            timerConfig
+        )
     })
 
     DisposableEffect(onStemPrimaryHandlerChange) {
@@ -209,19 +219,22 @@ fun TimerScreen(
     }
 
     LaunchedEffect(key1 = gameClockRemaining) {
-        if ((gameClockRemaining.isTwoMinutesWarning() || gameClockRemaining.isFinalSeconds()) && gameClockState is TimerState.Running) {
+        if (
+            (gameClockRemaining.isTwoMinutesWarning(timerConfig) || gameClockRemaining.isFinalSeconds(timerConfig)) &&
+            gameClockState is TimerState.Running
+        ) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context)
         }
     }
     LaunchedEffect(key1 = activePlayClockRemaining) {
-        if (TimerRules.shouldVibratePlayClockWarning(activePlayClockRemaining, activePlayClockState)) {
+        if (TimerRules.shouldVibratePlayClockWarning(activePlayClockRemaining, activePlayClockState, timerConfig)) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context)
         }
     }
     LaunchedEffect(key1 = timeoutTimeRemaining) {
-        if (TimerRules.shouldVibrateTimeoutWarning(timeoutTimeRemaining, timeoutState)) {
+        if (TimerRules.shouldVibrateTimeoutWarning(timeoutTimeRemaining, timeoutState, timerConfig)) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context, pulses = 2)
         }
@@ -515,7 +528,8 @@ private fun handleStemPrimaryDoubleAction(
     gameClockState: TimerState,
     isFlagMode: Boolean,
     viewModels: TimerScreenViewModels,
-    startFlagPlayClock25: () -> Unit
+    startFlagPlayClock25: () -> Unit,
+    timerConfig: TimerConfig
 ) {
     if (timeoutState !in listOf(TimerState.Running, TimerState.Paused) && gameClockState !is TimerState.Finished) {
         if (isFlagMode) {
@@ -523,7 +537,8 @@ private fun handleStemPrimaryDoubleAction(
         } else {
             val playClockDuration = TimerRules.playClockDurationOnDoublePress(
                 isFlagMode = false,
-                gameClockState = gameClockState
+                gameClockState = gameClockState,
+                config = timerConfig
             )
             viewModels.playClockViewModel.startTimer(playClockDuration)
         }
@@ -535,13 +550,15 @@ private fun handleStemPrimaryDoubleAction(
 fun TimerPreview() {
     GridironTimerTheme {
         TimerScreen(
-            duration = 20L * 60L * 1000L,
+            duration = TimerConfigs.Default.flagGameDurationMs,
             rememberSwipeDismissableNavController(),
-            initialDuration = 20L * 60L * 1000L
+            initialDuration = TimerConfigs.Default.flagGameDurationMs
         )
     }
 }
 
-private fun Long.isTwoMinutesWarning() = this <= 120_000L && this >= 115_000L
+private fun Long.isTwoMinutesWarning(config: TimerConfig = TimerConfigs.Default) =
+    this in config.twoMinuteWarningEndMs..config.twoMinuteWarningStartMs
 
-private fun Long.isFinalSeconds() = this <= 10_000L
+private fun Long.isFinalSeconds(config: TimerConfig = TimerConfigs.Default) =
+    this <= config.playClockWarningMs
