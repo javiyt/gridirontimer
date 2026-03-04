@@ -56,6 +56,15 @@ jacoco {
 tasks.withType<Test>().configureEach {
     useJUnit()
     jvmArgs("--add-opens=java.base/java.lang=ALL-UNNAMED")
+    
+    // Enable parallel test execution
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+    
+    // Optimize test execution
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = false
+    }
 }
 
 tasks.register<JacocoReport>("jacocoTestReport") {
