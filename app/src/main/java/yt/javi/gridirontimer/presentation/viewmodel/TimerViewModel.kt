@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class TimerViewModel(
-    private val countdownScheduler: CountdownScheduler = AndroidCountdownScheduler()
+    private val countdownScheduler: CountdownScheduler = AndroidCountdownScheduler(),
+    private val timerConfig: TimerConfig = TimerConfigs.Default
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<TimerState>(TimerState.Idle)
@@ -20,7 +21,7 @@ class TimerViewModel(
     fun startTimer(duration: Long) {
         countDownTimer?.cancel()
         _state.value = TimerState.Running
-        countDownTimer = countdownScheduler.create(duration, 1_000L, onTick = { millisUntilFinished ->
+        countDownTimer = countdownScheduler.create(duration, timerConfig.tickIntervalMs, onTick = { millisUntilFinished ->
                 _time.value = millisUntilFinished
                 if (millisUntilFinished == 0L){
                     _state.value = TimerState.Finished

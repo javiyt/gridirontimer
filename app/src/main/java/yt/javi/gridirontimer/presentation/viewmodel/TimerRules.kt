@@ -1,27 +1,41 @@
 package yt.javi.gridirontimer.presentation.viewmodel
 
 object TimerRules {
-    const val FLAG_GAME_DURATION_MS = 20L * 60L * 1000L
+    fun isFlagMode(initialDuration: Long, config: TimerConfig = TimerConfigs.Default): Boolean =
+        initialDuration == config.flagGameDurationMs
 
-    fun isFlagMode(initialDuration: Long): Boolean = initialDuration == FLAG_GAME_DURATION_MS
-
-    fun playClockDurationOnDoublePress(isFlagMode: Boolean, gameClockState: TimerState): Long {
+    fun playClockDurationOnDoublePress(
+        isFlagMode: Boolean,
+        gameClockState: TimerState,
+        config: TimerConfig = TimerConfigs.Default
+    ): Long {
         return if (isFlagMode) {
-            25_000L
+            config.flagPlayClockMs
         } else if (gameClockState is TimerState.Running) {
-            40_000L
+            config.tacklePlayClockRunningMs
         } else {
-            25_000L
+            config.flagPlayClockMs
         }
     }
 
-    fun shouldVibratePlayClockWarning(remainingMs: Long, state: TimerState): Boolean {
-        return remainingMs.isWithinSecondMark(10_000L) && state is TimerState.Running
+    fun shouldVibratePlayClockWarning(
+        remainingMs: Long,
+        state: TimerState,
+        config: TimerConfig = TimerConfigs.Default
+    ): Boolean {
+        return remainingMs.isWithinSecondMark(config.playClockWarningMs) && state is TimerState.Running
     }
 
-    fun shouldVibrateTimeoutWarning(remainingMs: Long, state: TimerState): Boolean {
+    fun shouldVibrateTimeoutWarning(
+        remainingMs: Long,
+        state: TimerState,
+        config: TimerConfig = TimerConfigs.Default
+    ): Boolean {
         return state is TimerState.Running &&
-            (remainingMs.isWithinSecondMark(10_000L) || remainingMs.isWithinSecondMark(5_000L))
+            (
+                remainingMs.isWithinSecondMark(config.timeoutWarningHighMs) ||
+                    remainingMs.isWithinSecondMark(config.timeoutWarningLowMs)
+                )
     }
 
     fun shouldVibrateOnSevenSecondFinish(isFlagMode: Boolean, sevenSecondState: TimerState): Boolean {

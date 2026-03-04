@@ -9,21 +9,24 @@ class TimerRulesTest {
 
     @Test
     fun `isFlagMode true only for 20 minutes`() {
-        assertTrue(TimerRules.isFlagMode(20L * 60L * 1000L))
-        assertFalse(TimerRules.isFlagMode(12L * 60L * 1000L))
+        val config = TimerConfigs.Default
+        assertTrue(TimerRules.isFlagMode(config.flagGameDurationMs, config))
+        assertFalse(TimerRules.isFlagMode(12L * 60L * 1000L, config))
     }
 
     @Test
     fun `double press play clock duration follows flag and tackle rules`() {
-        assertEquals(25_000L, TimerRules.playClockDurationOnDoublePress(true, TimerState.Running))
-        assertEquals(40_000L, TimerRules.playClockDurationOnDoublePress(false, TimerState.Running))
-        assertEquals(25_000L, TimerRules.playClockDurationOnDoublePress(false, TimerState.Paused))
-        assertEquals(25_000L, TimerRules.playClockDurationOnDoublePress(false, TimerState.Idle))
+        val config = TimerConfigs.Default
+        assertEquals(config.flagPlayClockMs, TimerRules.playClockDurationOnDoublePress(true, TimerState.Running, config))
+        assertEquals(config.tacklePlayClockRunningMs, TimerRules.playClockDurationOnDoublePress(false, TimerState.Running, config))
+        assertEquals(config.flagPlayClockMs, TimerRules.playClockDurationOnDoublePress(false, TimerState.Paused, config))
+        assertEquals(config.flagPlayClockMs, TimerRules.playClockDurationOnDoublePress(false, TimerState.Idle, config))
     }
 
     @Test
     fun `play clock warning vibrates only in running and 10 second mark`() {
-        assertTrue(TimerRules.shouldVibratePlayClockWarning(10_000L, TimerState.Running))
+        val config = TimerConfigs.Default
+        assertTrue(TimerRules.shouldVibratePlayClockWarning(10_000L, TimerState.Running, config))
         assertTrue(TimerRules.shouldVibratePlayClockWarning(9_500L, TimerState.Running))
         assertFalse(TimerRules.shouldVibratePlayClockWarning(8_999L, TimerState.Running))
         assertFalse(TimerRules.shouldVibratePlayClockWarning(10_000L, TimerState.Paused))
@@ -31,8 +34,9 @@ class TimerRulesTest {
 
     @Test
     fun `timeout warnings vibrate at 10 and 5 seconds only while running`() {
-        assertTrue(TimerRules.shouldVibrateTimeoutWarning(10_000L, TimerState.Running))
-        assertTrue(TimerRules.shouldVibrateTimeoutWarning(5_000L, TimerState.Running))
+        val config = TimerConfigs.Default
+        assertTrue(TimerRules.shouldVibrateTimeoutWarning(10_000L, TimerState.Running, config))
+        assertTrue(TimerRules.shouldVibrateTimeoutWarning(5_000L, TimerState.Running, config))
         assertFalse(TimerRules.shouldVibrateTimeoutWarning(4_000L, TimerState.Running))
         assertFalse(TimerRules.shouldVibrateTimeoutWarning(10_000L, TimerState.Paused))
     }
@@ -45,5 +49,13 @@ class TimerRulesTest {
         assertTrue(TimerRules.shouldVibrateOnSevenSecondFinish(true, TimerState.Finished))
         assertFalse(TimerRules.shouldVibrateOnSevenSecondFinish(false, TimerState.Finished))
         assertFalse(TimerRules.shouldVibrateOnSevenSecondFinish(true, TimerState.Running))
+    }
+
+    @Test
+    fun `rules respect custom fast config thresholds`() {
+        val fast = TimerConfigs.Fast
+        assertTrue(TimerRules.shouldVibratePlayClockWarning(1_000L, TimerState.Running, fast))
+        assertTrue(TimerRules.shouldVibrateTimeoutWarning(500L, TimerState.Running, fast))
+        assertEquals(4_000L, TimerRules.playClockDurationOnDoublePress(false, TimerState.Running, fast))
     }
 }
