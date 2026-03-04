@@ -24,7 +24,6 @@ updates:
       - dependency-type: "direct"
       - dependency-type: "indirect"
     rebase-strategy: "auto"
-    versioning-strategy: "auto"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
