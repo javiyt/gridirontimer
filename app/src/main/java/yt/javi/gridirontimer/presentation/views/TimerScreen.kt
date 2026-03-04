@@ -42,28 +42,40 @@ import yt.javi.gridirontimer.presentation.viewmodel.TimerState
 import yt.javi.gridirontimer.presentation.viewmodel.TimerUtils
 import yt.javi.gridirontimer.presentation.viewmodel.TimerViewModel
 
+data class TimerScreenViewModels(
+    val gameClockViewModel: TimerViewModel,
+    val playClockViewModel: PlayClockViewModel,
+    val sevenSecondClockViewModel: PlayClockViewModel,
+    val timeoutViewModel: TimeoutViewModel,
+)
+
+@Composable
+fun createTimerScreenViewModels(): TimerScreenViewModels = TimerScreenViewModels(
+    gameClockViewModel = viewModel(),
+    playClockViewModel = viewModel(key = "play_clock"),
+    sevenSecondClockViewModel = viewModel(key = "seven_second_clock"),
+    timeoutViewModel = viewModel(),
+)
+
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun TimerScreen(
     duration: Long,
     navController: NavController,
-    gameClockViewModel: TimerViewModel = viewModel(),
-    playClockViewModel: PlayClockViewModel = viewModel(key = "play_clock"),
-    sevenSecondClockViewModel: PlayClockViewModel = viewModel(key = "seven_second_clock"),
-    timeoutViewModel: TimeoutViewModel = viewModel(),
     initialDuration: Long,
+    viewModels: TimerScreenViewModels = createTimerScreenViewModels(),
     onStemPrimaryHandlerChange: (((() -> Unit)?) -> Unit)? = null,
     onStemPrimaryDoubleHandlerChange: (((() -> Unit)?) -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    val gameClockState by gameClockViewModel.state.collectAsState()
-    val gameClockRemaining by gameClockViewModel.time.collectAsState()
-    val playClockState by playClockViewModel.state.collectAsState()
-    val playClockRemaining by playClockViewModel.time.collectAsState()
-    val sevenSecondClockState by sevenSecondClockViewModel.state.collectAsState()
-    val sevenSecondClockRemaining by sevenSecondClockViewModel.time.collectAsState()
-    val timeoutState by timeoutViewModel.state.collectAsState()
-    val timeoutTimeRemaining by timeoutViewModel.time.collectAsState()
+    val gameClockState by viewModels.gameClockViewModel.state.collectAsState()
+    val gameClockRemaining by viewModels.gameClockViewModel.time.collectAsState()
+    val playClockState by viewModels.playClockViewModel.state.collectAsState()
+    val playClockRemaining by viewModels.playClockViewModel.time.collectAsState()
+    val sevenSecondClockState by viewModels.sevenSecondClockViewModel.state.collectAsState()
+    val sevenSecondClockRemaining by viewModels.sevenSecondClockViewModel.time.collectAsState()
+    val timeoutState by viewModels.timeoutViewModel.state.collectAsState()
+    val timeoutTimeRemaining by viewModels.timeoutViewModel.time.collectAsState()
     val isFlagMode = TimerRules.isFlagMode(initialDuration)
     val activePlayClockState = if (isFlagMode && sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused)) {
         sevenSecondClockState
@@ -76,38 +88,22 @@ fun TimerScreen(
         playClockRemaining
     }
     val resetFlagTimers by rememberUpdatedState(newValue = {
-        playClockViewModel.stopAndReset(25_000L)
-        sevenSecondClockViewModel.stopAndReset(7_000L)
+        viewModels.playClockViewModel.stopAndReset(25_000L)
+        viewModels.sevenSecondClockViewModel.stopAndReset(7_000L)
     })
     val startFlagPlayClock25 by rememberUpdatedState(newValue = {
-        sevenSecondClockViewModel.stopAndReset(7_000L)
-        playClockViewModel.startTimer(25_000L)
+        viewModels.sevenSecondClockViewModel.stopAndReset(7_000L)
+        viewModels.playClockViewModel.startTimer(25_000L)
     })
     val startSevenSecondClock by rememberUpdatedState(newValue = {
-        playClockViewModel.stopAndReset(25_000L)
-        sevenSecondClockViewModel.startTimer(7_000L)
+        viewModels.playClockViewModel.stopAndReset(25_000L)
+        viewModels.sevenSecondClockViewModel.startTimer(7_000L)
     })
     val stemPrimaryAction by rememberUpdatedState(newValue = {
-        if (timeoutState in listOf(TimerState.Running, TimerState.Paused)) {
-            if (timeoutState is TimerState.Running) timeoutViewModel.pauseTimer() else timeoutViewModel.resumeTimer()
-        } else if (gameClockState is TimerState.Running) {
-            gameClockViewModel.pauseTimer()
-        } else if (gameClockState is TimerState.Paused) {
-            gameClockViewModel.resumeTimer()
-        }
+        handleStemPrimaryAction(timeoutState, gameClockState, viewModels)
     })
     val stemPrimaryDoubleAction by rememberUpdatedState(newValue = {
-        if (timeoutState !in listOf(TimerState.Running, TimerState.Paused) && gameClockState !is TimerState.Finished) {
-            if (isFlagMode) {
-                startFlagPlayClock25()
-            } else {
-                val playClockDuration = TimerRules.playClockDurationOnDoublePress(
-                    isFlagMode = false,
-                    gameClockState = gameClockState
-                )
-                playClockViewModel.startTimer(playClockDuration)
-            }
-        }
+        handleStemPrimaryDoubleAction(timeoutState, gameClockState, isFlagMode, viewModels, startFlagPlayClock25)
     })
 
     DisposableEffect(onStemPrimaryHandlerChange) {
@@ -120,7 +116,7 @@ fun TimerScreen(
     }
 
     LaunchedEffect(key1 = duration) {
-        gameClockViewModel.startTimer(duration)
+        viewModels.gameClockViewModel.startTimer(duration)
     }
 
     if (gameClockState is TimerState.Finished) {
@@ -140,18 +136,18 @@ fun TimerScreen(
             GameAndPlayClockScreen(
                 gameClockRemaining,
                 gameClockState,
-                gameClockViewModel,
-                playClockViewModel,
+                viewModels.gameClockViewModel,
+                viewModels.playClockViewModel,
                 activePlayClockState,
                 activePlayClockRemaining,
                 isFlagMode,
                 startFlagPlayClock25,
                 startSevenSecondClock,
                 resetFlagTimers,
-                timeoutViewModel
+                viewModels.timeoutViewModel
             )
         } else {
-            TimeOutScreen(timeoutTimeRemaining, timeoutState, timeoutViewModel, gameClockRemaining)
+            TimeOutScreen(timeoutTimeRemaining, timeoutState, viewModels.timeoutViewModel, gameClockRemaining)
         }
     }
 
@@ -333,6 +329,44 @@ private fun TimeOutScreen(
     }
 }
 
+private fun handleStemPrimaryAction(
+    timeoutState: TimerState,
+    gameClockState: TimerState,
+    viewModels: TimerScreenViewModels
+) {
+    when {
+        timeoutState in listOf(TimerState.Running, TimerState.Paused) -> {
+            if (timeoutState is TimerState.Running) {
+                viewModels.timeoutViewModel.pauseTimer()
+            } else {
+                viewModels.timeoutViewModel.resumeTimer()
+            }
+        }
+        gameClockState is TimerState.Running -> viewModels.gameClockViewModel.pauseTimer()
+        gameClockState is TimerState.Paused -> viewModels.gameClockViewModel.resumeTimer()
+    }
+}
+
+private fun handleStemPrimaryDoubleAction(
+    timeoutState: TimerState,
+    gameClockState: TimerState,
+    isFlagMode: Boolean,
+    viewModels: TimerScreenViewModels,
+    startFlagPlayClock25: () -> Unit
+) {
+    if (timeoutState !in listOf(TimerState.Running, TimerState.Paused) && gameClockState !is TimerState.Finished) {
+        if (isFlagMode) {
+            startFlagPlayClock25()
+        } else {
+            val playClockDuration = TimerRules.playClockDurationOnDoublePress(
+                isFlagMode = false,
+                gameClockState = gameClockState
+            )
+            viewModels.playClockViewModel.startTimer(playClockDuration)
+        }
+    }
+}
+
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
 fun TimerPreview() {
@@ -340,9 +374,7 @@ fun TimerPreview() {
         TimerScreen(
             duration = 20L * 60L * 1000L,
             rememberSwipeDismissableNavController(),
-            initialDuration = 20L * 60L * 1000L,
-            onStemPrimaryHandlerChange = null,
-            onStemPrimaryDoubleHandlerChange = null
+            initialDuration = 20L * 60L * 1000L
         )
     }
 }

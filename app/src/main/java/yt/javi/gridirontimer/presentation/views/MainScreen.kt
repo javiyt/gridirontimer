@@ -38,14 +38,6 @@ fun MainScreen(navController: NavController) {
         ) {
             Text(text = stringResource(R.string.tackle))
         }
-
-
-//        Button(
-//            onClick = { navController.navigate(Screen.CustomTimer.route) },
-//            colors = ButtonDefaults.primaryButtonColors()
-//        ) {
-//            Text(text = "Custom")
-//        }
     }
 }
 
