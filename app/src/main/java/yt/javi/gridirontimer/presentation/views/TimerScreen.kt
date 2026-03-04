@@ -42,28 +42,56 @@ import yt.javi.gridirontimer.presentation.viewmodel.TimerState
 import yt.javi.gridirontimer.presentation.viewmodel.TimerUtils
 import yt.javi.gridirontimer.presentation.viewmodel.TimerViewModel
 
+data class TimerScreenViewModels(
+    val gameClockViewModel: TimerViewModel,
+    val playClockViewModel: PlayClockViewModel,
+    val sevenSecondClockViewModel: PlayClockViewModel,
+    val timeoutViewModel: TimeoutViewModel,
+)
+
+data class GameAndPlayClockScreenState(
+    val gameClockRemaining: Long,
+    val gameClockState: TimerState,
+    val gameClockViewModel: TimerViewModel,
+    val playClockViewModel: PlayClockViewModel,
+    val playClockState: TimerState,
+    val playClockRemaining: Long,
+    val timeoutViewModel: TimeoutViewModel
+)
+
+data class GameAndPlayClockScreenCallbacks(
+    val startFlagPlayClock25: () -> Unit,
+    val startSevenSecondClock: () -> Unit,
+    val resetFlagTimers: () -> Unit
+)
+
+@Composable
+fun createTimerScreenViewModels(): TimerScreenViewModels = TimerScreenViewModels(
+    gameClockViewModel = viewModel(),
+    playClockViewModel = viewModel(key = "play_clock"),
+    sevenSecondClockViewModel = viewModel(key = "seven_second_clock"),
+    timeoutViewModel = viewModel(),
+)
+
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun TimerScreen(
     duration: Long,
     navController: NavController,
-    gameClockViewModel: TimerViewModel = viewModel(),
-    playClockViewModel: PlayClockViewModel = viewModel(key = "play_clock"),
-    sevenSecondClockViewModel: PlayClockViewModel = viewModel(key = "seven_second_clock"),
-    timeoutViewModel: TimeoutViewModel = viewModel(),
     initialDuration: Long,
+    viewModels: TimerScreenViewModels = createTimerScreenViewModels(),
     onStemPrimaryHandlerChange: (((() -> Unit)?) -> Unit)? = null,
     onStemPrimaryDoubleHandlerChange: (((() -> Unit)?) -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    val gameClockState by gameClockViewModel.state.collectAsState()
-    val gameClockRemaining by gameClockViewModel.time.collectAsState()
-    val playClockState by playClockViewModel.state.collectAsState()
-    val playClockRemaining by playClockViewModel.time.collectAsState()
-    val sevenSecondClockState by sevenSecondClockViewModel.state.collectAsState()
-    val sevenSecondClockRemaining by sevenSecondClockViewModel.time.collectAsState()
-    val timeoutState by timeoutViewModel.state.collectAsState()
-    val timeoutTimeRemaining by timeoutViewModel.time.collectAsState()
+    val gameClockState by viewModels.gameClockViewModel.state.collectAsState()
+    val gameClockRemaining by viewModels.gameClockViewModel.time.collectAsState()
+    val playClockState by viewModels.playClockViewModel.state.collectAsState()
+    val playClockRemaining by viewModels.playClockViewModel.time.collectAsState()
+    val sevenSecondClockState by viewModels.sevenSecondClockViewModel.state.collectAsState()
+    val sevenSecondClockRemaining by viewModels.sevenSecondClockViewModel.time.collectAsState()
+    val timeoutState by viewModels.timeoutViewModel.state.collectAsState()
+    val timeoutTimeRemaining by viewModels.timeoutViewModel.time.collectAsState()
     val isFlagMode = TimerRules.isFlagMode(initialDuration)
     val activePlayClockState = if (isFlagMode && sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused)) {
         sevenSecondClockState
@@ -76,38 +104,22 @@ fun TimerScreen(
         playClockRemaining
     }
     val resetFlagTimers by rememberUpdatedState(newValue = {
-        playClockViewModel.stopAndReset(25_000L)
-        sevenSecondClockViewModel.stopAndReset(7_000L)
+        viewModels.playClockViewModel.stopAndReset(25_000L)
+        viewModels.sevenSecondClockViewModel.stopAndReset(7_000L)
     })
     val startFlagPlayClock25 by rememberUpdatedState(newValue = {
-        sevenSecondClockViewModel.stopAndReset(7_000L)
-        playClockViewModel.startTimer(25_000L)
+        viewModels.sevenSecondClockViewModel.stopAndReset(7_000L)
+        viewModels.playClockViewModel.startTimer(25_000L)
     })
     val startSevenSecondClock by rememberUpdatedState(newValue = {
-        playClockViewModel.stopAndReset(25_000L)
-        sevenSecondClockViewModel.startTimer(7_000L)
+        viewModels.playClockViewModel.stopAndReset(25_000L)
+        viewModels.sevenSecondClockViewModel.startTimer(7_000L)
     })
     val stemPrimaryAction by rememberUpdatedState(newValue = {
-        if (timeoutState in listOf(TimerState.Running, TimerState.Paused)) {
-            if (timeoutState is TimerState.Running) timeoutViewModel.pauseTimer() else timeoutViewModel.resumeTimer()
-        } else if (gameClockState is TimerState.Running) {
-            gameClockViewModel.pauseTimer()
-        } else if (gameClockState is TimerState.Paused) {
-            gameClockViewModel.resumeTimer()
-        }
+        handleStemPrimaryAction(timeoutState, gameClockState, viewModels)
     })
     val stemPrimaryDoubleAction by rememberUpdatedState(newValue = {
-        if (timeoutState !in listOf(TimerState.Running, TimerState.Paused) && gameClockState !is TimerState.Finished) {
-            if (isFlagMode) {
-                startFlagPlayClock25()
-            } else {
-                val playClockDuration = TimerRules.playClockDurationOnDoublePress(
-                    isFlagMode = false,
-                    gameClockState = gameClockState
-                )
-                playClockViewModel.startTimer(playClockDuration)
-            }
-        }
+        handleStemPrimaryDoubleAction(timeoutState, gameClockState, isFlagMode, viewModels, startFlagPlayClock25)
     })
 
     DisposableEffect(onStemPrimaryHandlerChange) {
@@ -120,7 +132,7 @@ fun TimerScreen(
     }
 
     LaunchedEffect(key1 = duration) {
-        gameClockViewModel.startTimer(duration)
+        viewModels.gameClockViewModel.startTimer(duration)
     }
 
     if (gameClockState is TimerState.Finished) {
@@ -138,20 +150,24 @@ fun TimerScreen(
     ) {
         if (timeoutState !in listOf(TimerState.Running, TimerState.Paused)) {
             GameAndPlayClockScreen(
-                gameClockRemaining,
-                gameClockState,
-                gameClockViewModel,
-                playClockViewModel,
-                activePlayClockState,
-                activePlayClockRemaining,
                 isFlagMode,
-                startFlagPlayClock25,
-                startSevenSecondClock,
-                resetFlagTimers,
-                timeoutViewModel
+                GameAndPlayClockScreenState(
+                    gameClockRemaining,
+                    gameClockState,
+                    viewModels.gameClockViewModel,
+                    viewModels.playClockViewModel,
+                    activePlayClockState,
+                    activePlayClockRemaining,
+                    viewModels.timeoutViewModel
+                ),
+                GameAndPlayClockScreenCallbacks(
+                    startFlagPlayClock25,
+                    startSevenSecondClock,
+                    resetFlagTimers
+                )
             )
         } else {
-            TimeOutScreen(timeoutTimeRemaining, timeoutState, timeoutViewModel, gameClockRemaining)
+            TimeOutScreen(timeoutTimeRemaining, timeoutState, viewModels.timeoutViewModel, gameClockRemaining)
         }
     }
 
@@ -159,21 +175,18 @@ fun TimerScreen(
         if ((gameClockRemaining.isTwoMinutesWarning() || gameClockRemaining.isFinalSeconds()) && gameClockState is TimerState.Running) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context)
-            //TimerUtils.playSound(context)
         }
     }
     LaunchedEffect(key1 = activePlayClockRemaining) {
         if (TimerRules.shouldVibratePlayClockWarning(activePlayClockRemaining, activePlayClockState)) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context)
-            //TimerUtils.playSound(context)
         }
     }
     LaunchedEffect(key1 = timeoutTimeRemaining) {
         if (TimerRules.shouldVibrateTimeoutWarning(timeoutTimeRemaining, timeoutState)) {
             Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context, pulses = 2)
-            //TimerUtils.playSound(context)
         }
     }
     LaunchedEffect(key1 = timeoutState) {
@@ -192,17 +205,31 @@ fun TimerScreen(
 
 @Composable
 private fun GameAndPlayClockScreen(
+    isFlagMode: Boolean,
+    state: GameAndPlayClockScreenState,
+    callbacks: GameAndPlayClockScreenCallbacks
+) {
+    GameClockDisplay(state.gameClockRemaining, state.gameClockState, state.gameClockViewModel)
+    if (state.gameClockState !is TimerState.Finished) {
+        Spacer(modifier = Modifier.width(16.dp))
+        PlayClockSelector(isFlagMode, state.playClockViewModel, callbacks)
+        PlayClockDisplay(
+            isFlagMode,
+            state.playClockState,
+            state.playClockRemaining,
+            state.playClockViewModel,
+            callbacks.resetFlagTimers
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        TimeoutButton(isFlagMode, state, callbacks)
+    }
+}
+
+@Composable
+private fun GameClockDisplay(
     gameClockRemaining: Long,
     gameClockState: TimerState,
-    gameClockViewModel: TimerViewModel,
-    playClockViewModel: PlayClockViewModel,
-    playClockState: TimerState,
-    playClockRemaining: Long,
-    isFlagMode: Boolean,
-    startFlagPlayClock25: () -> Unit,
-    startSevenSecondClock: () -> Unit,
-    resetFlagTimers: () -> Unit,
-    timeoutViewModel: TimeoutViewModel
+    gameClockViewModel: TimerViewModel
 ) {
     Text(
         text = TimerUtils.formatTime(gameClockRemaining),
@@ -212,54 +239,79 @@ private fun GameAndPlayClockScreen(
             color = if (gameClockState is TimerState.Running) Color.White else Color.Gray
         ),
         modifier = Modifier.clickable(true, onClick = {
-            if (gameClockState is TimerState.Running) gameClockViewModel.pauseTimer() else gameClockViewModel.resumeTimer()
+            when (gameClockState) {
+                is TimerState.Running -> gameClockViewModel.pauseTimer()
+                is TimerState.Paused -> gameClockViewModel.resumeTimer()
+                else -> {}
+            }
         }),
     )
-    if (gameClockState !is TimerState.Finished) {
-        Spacer(modifier = Modifier.width(16.dp))
+}
 
-        if (isFlagMode) {
-            FlagPlayClock(startFlagPlayClock25, startSevenSecondClock)
-        } else {
-            DualPlayClock(playClockViewModel)
-        }
+@Composable
+private fun PlayClockSelector(
+    isFlagMode: Boolean,
+    playClockViewModel: PlayClockViewModel,
+    callbacks: GameAndPlayClockScreenCallbacks
+) {
+    if (isFlagMode) {
+        FlagPlayClock(callbacks.startFlagPlayClock25, callbacks.startSevenSecondClock)
+    } else {
+        DualPlayClock(playClockViewModel)
+    }
+}
 
-        if (playClockState !in listOf(
-                TimerState.Idle,
-                TimerState.Finished
-            ) && playClockRemaining >= 500L
-        ) {
-            Text(
-                text = TimerUtils.formatSeconds(playClockRemaining),
-                style = TextStyle(
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (playClockState is TimerState.Running) Color.White else Color.Gray
-                ),
-                modifier = Modifier.clickable(true, onClick = {
-                    if (isFlagMode) {
-                        resetFlagTimers()
-                    } else {
-                        if (playClockState is TimerState.Running) playClockViewModel.pauseTimer() else playClockViewModel.resumeTimer()
-                    }
-                }),
-            )
-        }
-        Spacer(modifier = Modifier.width(16.dp))
-        Button(
-            onClick = {
-                gameClockViewModel.pauseTimer()
+@Composable
+private fun PlayClockDisplay(
+    isFlagMode: Boolean,
+    playClockState: TimerState,
+    playClockRemaining: Long,
+    playClockViewModel: PlayClockViewModel,
+    resetFlagTimers: () -> Unit
+) {
+    val shouldShowPlayClock = playClockState !in listOf(TimerState.Idle, TimerState.Finished) && playClockRemaining >= 500L
+    if (shouldShowPlayClock) {
+        Text(
+            text = TimerUtils.formatSeconds(playClockRemaining),
+            style = TextStyle(
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (playClockState is TimerState.Running) Color.White else Color.Gray
+            ),
+            modifier = Modifier.clickable(true, onClick = {
                 if (isFlagMode) {
                     resetFlagTimers()
                 } else {
-                    playClockViewModel.cancelTimer()
+                    when (playClockState) {
+                        is TimerState.Running -> playClockViewModel.pauseTimer()
+                        is TimerState.Paused -> playClockViewModel.resumeTimer()
+                        else -> {}
+                    }
                 }
-                timeoutViewModel.startTimer()
-            },
-            colors = ButtonDefaults.primaryButtonColors()
-        ) {
-            Text(text = stringResource(R.string.timeout))
-        }
+            }),
+        )
+    }
+}
+
+@Composable
+private fun TimeoutButton(
+    isFlagMode: Boolean,
+    state: GameAndPlayClockScreenState,
+    callbacks: GameAndPlayClockScreenCallbacks
+) {
+    Button(
+        onClick = {
+            state.gameClockViewModel.pauseTimer()
+            if (isFlagMode) {
+                callbacks.resetFlagTimers()
+            } else {
+                state.playClockViewModel.cancelTimer()
+            }
+            state.timeoutViewModel.startTimer()
+        },
+        colors = ButtonDefaults.primaryButtonColors()
+    ) {
+        Text(text = stringResource(R.string.timeout))
     }
 }
 
@@ -320,7 +372,11 @@ private fun TimeOutScreen(
         text = TimerUtils.formatSeconds(timeoutTimeRemaining),
         style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Bold),
         modifier = Modifier.clickable(true, onClick = {
-            if (timeoutState is TimerState.Running) timeoutViewModel.pauseTimer() else timeoutViewModel.resumeTimer()
+            when (timeoutState) {
+                is TimerState.Running -> timeoutViewModel.pauseTimer()
+                is TimerState.Paused -> timeoutViewModel.resumeTimer()
+                else -> {}
+            }
         }),
     )
     Button(
@@ -333,6 +389,44 @@ private fun TimeOutScreen(
     }
 }
 
+private fun handleStemPrimaryAction(
+    timeoutState: TimerState,
+    gameClockState: TimerState,
+    viewModels: TimerScreenViewModels
+) {
+    when {
+        timeoutState in listOf(TimerState.Running, TimerState.Paused) -> {
+            when (timeoutState) {
+                is TimerState.Running -> viewModels.timeoutViewModel.pauseTimer()
+                is TimerState.Paused -> viewModels.timeoutViewModel.resumeTimer()
+                else -> {}
+            }
+        }
+        gameClockState is TimerState.Running -> viewModels.gameClockViewModel.pauseTimer()
+        gameClockState is TimerState.Paused -> viewModels.gameClockViewModel.resumeTimer()
+    }
+}
+
+private fun handleStemPrimaryDoubleAction(
+    timeoutState: TimerState,
+    gameClockState: TimerState,
+    isFlagMode: Boolean,
+    viewModels: TimerScreenViewModels,
+    startFlagPlayClock25: () -> Unit
+) {
+    if (timeoutState !in listOf(TimerState.Running, TimerState.Paused) && gameClockState !is TimerState.Finished) {
+        if (isFlagMode) {
+            startFlagPlayClock25()
+        } else {
+            val playClockDuration = TimerRules.playClockDurationOnDoublePress(
+                isFlagMode = false,
+                gameClockState = gameClockState
+            )
+            viewModels.playClockViewModel.startTimer(playClockDuration)
+        }
+    }
+}
+
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
 fun TimerPreview() {
@@ -340,9 +434,7 @@ fun TimerPreview() {
         TimerScreen(
             duration = 20L * 60L * 1000L,
             rememberSwipeDismissableNavController(),
-            initialDuration = 20L * 60L * 1000L,
-            onStemPrimaryHandlerChange = null,
-            onStemPrimaryDoubleHandlerChange = null
+            initialDuration = 20L * 60L * 1000L
         )
     }
 }
