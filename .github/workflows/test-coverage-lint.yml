@@ -3,8 +3,22 @@ name: Tests, Coverage & Code Analysis
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - 'app/src/**'
+      - 'app/build.gradle.kts'
+      - 'build.gradle.kts'
+      - 'gradle.properties'
+      - 'gradle/libs.versions.toml'
+      - '.github/workflows/test-coverage-lint.yml'
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'app/src/**'
+      - 'app/build.gradle.kts'
+      - 'build.gradle.kts'
+      - 'gradle.properties'
+      - 'gradle/libs.versions.toml'
+      - '.github/workflows/test-coverage-lint.yml'
 
 permissions:
   contents: read
@@ -30,6 +44,20 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
+        with:
+          cache-write-only: false
+
+      - name: Cache test results and build outputs
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/build/test-results/
+            app/build/reports/
+            app/build/outputs/
+            app/build/intermediates/
+          key: ${{ runner.os }}-gradle-build-${{ hashFiles('app/build.gradle.kts', 'gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-build-
 
       - name: Make gradlew executable
         run: chmod +x gradlew
