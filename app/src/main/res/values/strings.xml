@@ -16,5 +16,9 @@
     <string name="_40s">40s</string>
     <string name="timeout">TO</string>
     <string name="stop">Stop</string>
+    <string name="start">Start</string>
     <string name="game_time">Game time: %1$s</string>
+    <string name="status_running">RUNNING</string>
+    <string name="status_paused">PAUSED</string>
+    <string name="status_ready">READY</string>
 </resources>
