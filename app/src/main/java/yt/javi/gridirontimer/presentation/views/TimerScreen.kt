@@ -100,6 +100,8 @@ fun TimerScreen(
     viewModels: TimerScreenViewModels = createTimerScreenViewModels(),
     onStemPrimaryHandlerChange: (((() -> Unit)?) -> Unit)? = null,
     onStemPrimaryDoubleHandlerChange: (((() -> Unit)?) -> Unit)? = null,
+    onStemPrimaryTripleHandlerChange: (((() -> Unit)?) -> Unit)? = null,
+    onStemPrimaryLongHandlerChange: (((() -> Unit)?) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val gameClockState by viewModels.gameClockViewModel.state.collectAsState()
@@ -151,6 +153,24 @@ fun TimerScreen(
             timerConfig
         )
     })
+    val stemPrimaryTripleAction by rememberUpdatedState(newValue = {
+        handleStemPrimaryTripleAction(
+            timeoutState,
+            gameClockState,
+            isFlagMode,
+            viewModels,
+            timerConfig
+        )
+    })
+    val stemPrimaryLongAction by rememberUpdatedState(newValue = {
+        handleStemPrimaryLongAction(
+            timeoutState,
+            gameClockState,
+            isFlagMode,
+            viewModels,
+            timerConfig
+        )
+    })
 
     DisposableEffect(onStemPrimaryHandlerChange) {
         onStemPrimaryHandlerChange?.invoke { stemPrimaryAction() }
@@ -159,6 +179,14 @@ fun TimerScreen(
     DisposableEffect(onStemPrimaryDoubleHandlerChange) {
         onStemPrimaryDoubleHandlerChange?.invoke { stemPrimaryDoubleAction() }
         onDispose { onStemPrimaryDoubleHandlerChange?.invoke(null) }
+    }
+    DisposableEffect(onStemPrimaryTripleHandlerChange) {
+        onStemPrimaryTripleHandlerChange?.invoke { stemPrimaryTripleAction() }
+        onDispose { onStemPrimaryTripleHandlerChange?.invoke(null) }
+    }
+    DisposableEffect(onStemPrimaryLongHandlerChange) {
+        onStemPrimaryLongHandlerChange?.invoke { stemPrimaryLongAction() }
+        onDispose { onStemPrimaryLongHandlerChange?.invoke(null) }
     }
 
     // Store the duration for later start when user taps on the time display
@@ -551,14 +579,48 @@ private fun handleStemPrimaryDoubleAction(
 ) {
     if (timeoutState !in listOf(TimerState.Running, TimerState.Paused) && gameClockState !is TimerState.Finished) {
         if (isFlagMode) {
+            // Flag mode: 2 taps = reset 25 second play clock
             startFlagPlayClock25()
         } else {
-            val playClockDuration = TimerRules.playClockDurationOnDoublePress(
-                isFlagMode = false,
-                gameClockState = gameClockState,
-                config = timerConfig
-            )
-            viewModels.playClockViewModel.startTimer(playClockDuration)
+            // Tackle mode: 2 taps = start 40 second play clock
+            viewModels.playClockViewModel.startTimer(timerConfig.tacklePlayClock40Ms)
+        }
+    }
+}
+
+private fun handleStemPrimaryTripleAction(
+    timeoutState: TimerState,
+    gameClockState: TimerState,
+    isFlagMode: Boolean,
+    viewModels: TimerScreenViewModels,
+    timerConfig: TimerConfig
+) {
+    if (gameClockState !is TimerState.Finished) {
+        if (isFlagMode) {
+            // Flag mode: 3 taps = start timeout
+            if (timeoutState is TimerState.Idle) {
+                viewModels.timeoutViewModel.startTimer(timerConfig.timeoutDurationMs)
+            }
+        } else {
+            // Tackle mode: 3 taps = start 25 second play clock
+            if (timeoutState !in listOf(TimerState.Running, TimerState.Paused)) {
+                viewModels.playClockViewModel.startTimer(timerConfig.tacklePlayClock25Ms)
+            }
+        }
+    }
+}
+
+private fun handleStemPrimaryLongAction(
+    timeoutState: TimerState,
+    gameClockState: TimerState,
+    isFlagMode: Boolean,
+    viewModels: TimerScreenViewModels,
+    timerConfig: TimerConfig
+) {
+    if (gameClockState !is TimerState.Finished) {
+        // Tackle mode only: long press = start timeout
+        if (!isFlagMode && timeoutState is TimerState.Idle) {
+            viewModels.timeoutViewModel.startTimer(timerConfig.timeoutDurationMs)
         }
     }
 }
