@@ -39,12 +39,29 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("MainActivity", "=== onCreate ===")
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent {
             GridironTimerTheme {
                 WearApp()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d("MainActivity", "=== onResume - app is in FOREGROUND ===")
+    }
+
+    override fun onPause() {
+        Log.d("MainActivity", "=== onPause - app going to BACKGROUND ===")
+        super.onPause()
+    }
+
+    override fun onUserLeaveHint() {
+        Log.d("MainActivity", "=== onUserLeaveHint - User is leaving app (HOME/RECENT pressed?) ===")
+        // Try to prevent going to background - this might not work but worth trying
+        super.onUserLeaveHint()
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
