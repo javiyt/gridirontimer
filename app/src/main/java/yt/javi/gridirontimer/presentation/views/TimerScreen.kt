@@ -1,7 +1,6 @@
 package yt.javi.gridirontimer.presentation.views
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -254,31 +253,26 @@ fun TimerScreen(
             (gameClockRemaining.isTwoMinutesWarning(timerConfig) || gameClockRemaining.isFinalSeconds(timerConfig)) &&
             gameClockState is TimerState.Running
         ) {
-            Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context)
         }
     }
     LaunchedEffect(key1 = activePlayClockRemaining) {
         if (TimerRules.shouldVibratePlayClockWarning(activePlayClockRemaining, activePlayClockState, timerConfig)) {
-            Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context)
         }
     }
     LaunchedEffect(key1 = timeoutTimeRemaining) {
         if (TimerRules.shouldVibrateTimeoutWarning(timeoutTimeRemaining, timeoutState, timerConfig)) {
-            Log.d("TimerScreen", "Vibration")
             TimerUtils.vibrate(context, pulses = 2)
         }
     }
     LaunchedEffect(key1 = timeoutState) {
         if (TimerRules.shouldVibrateOnTimeoutFinish(timeoutState)) {
-            Log.d("TimerScreen", "Timeout finished vibration")
             TimerUtils.vibrate(context, pulses = 3)
         }
     }
     LaunchedEffect(key1 = sevenSecondClockState) {
         if (TimerRules.shouldVibrateOnSevenSecondFinish(isFlagMode, sevenSecondClockState)) {
-            Log.d("TimerScreen", "7-second clock finished vibration")
             TimerUtils.vibrate(context, pulses = 3)
         }
     }
