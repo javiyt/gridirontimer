@@ -97,7 +97,7 @@ class MainActivity : ComponentActivity() {
             ) { navBackStackEntry ->
                 val duration = navBackStackEntry.arguments?.getLong("duration") ?: 0L
                 val mode = navBackStackEntry.arguments?.getString("mode") ?: "flag"
-                val isFlagMode = mode == "flag"
+                val isFlagMode = parseIsFlagMode(mode)
                 TimerScreen(
                     duration = duration,
                     navController = navController,
@@ -115,3 +115,5 @@ class MainActivity : ComponentActivity() {
         const val DOUBLE_PRESS_WINDOW_MS = 350L
     }
 }
+
+internal fun parseIsFlagMode(mode: String?): Boolean = mode == "flag"
