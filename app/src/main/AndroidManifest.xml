@@ -34,6 +34,10 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Request control of the primary stem button -->
+            <meta-data
+                android:name="com.google.android.wearable.app.primary_key"
+                android:value="true" />
         </activity>
     </application>
 
