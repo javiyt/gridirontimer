@@ -5,6 +5,7 @@
 
 package yt.javi.gridirontimer.presentation
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -64,6 +65,7 @@ class MainActivity : ComponentActivity() {
         super.onUserLeaveHint()
     }
 
+    @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         // Log ALL key events to diagnose which key the emulator is sending
         Log.d("MainActivity", "*** KEY EVENT: keyCode=${event.keyCode} (${KeyEvent.keyCodeToString(event.keyCode)}), action=${event.action}, scanCode=${event.scanCode}")
