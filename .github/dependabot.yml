@@ -8,7 +8,7 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "Europe/Madrid"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
     reviewers:
       - "javiyt"
     assignees:
@@ -23,6 +23,10 @@ updates:
       separator: "/"
     allow:
       - dependency-type: "direct"
+    groups:
+      gradle-dependencies:
+        patterns:
+          - "*"
     rebase-strategy: "auto"
 
   # GitHub Actions
@@ -33,7 +37,7 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "Europe/Madrid"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     reviewers:
       - "javiyt"
     assignees:
@@ -46,4 +50,8 @@ updates:
       include: "scope"
     pull-request-branch-name:
       separator: "/"
+    groups:
+      github-actions-dependencies:
+        patterns:
+          - "*"
     rebase-strategy: "auto"
