@@ -68,8 +68,12 @@ class MainActivity : ComponentActivity() {
         // Log ALL key events to diagnose which key the emulator is sending
         Log.d("MainActivity", "*** KEY EVENT: keyCode=${event.keyCode} (${KeyEvent.keyCodeToString(event.keyCode)}), action=${event.action}, scanCode=${event.scanCode}")
         
-        return if (event.keyCode == KeyEvent.KEYCODE_STEM_PRIMARY) {
-            Log.d("MainActivity", "Handling STEM_PRIMARY")
+        // Accept both STEM_PRIMARY (real device) and VOLUME_UP (emulator workaround)
+        val isControlButton = event.keyCode == KeyEvent.KEYCODE_STEM_PRIMARY || 
+                             event.keyCode == KeyEvent.KEYCODE_VOLUME_UP
+        
+        return if (isControlButton) {
+            Log.d("MainActivity", "Handling control button: ${KeyEvent.keyCodeToString(event.keyCode)}")
             when (event.action) {
                 KeyEvent.ACTION_DOWN -> onKeyDown(event.keyCode, event)
                 KeyEvent.ACTION_UP -> onKeyUp(event.keyCode, event)
@@ -83,7 +87,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         Log.d("MainActivity", "onKeyDown: keyCode=$keyCode, action=${event.action}, repeatCount=${event.repeatCount}")
-        if (keyCode == KeyEvent.KEYCODE_STEM_PRIMARY) {
+        
+        // Handle both STEM_PRIMARY and VOLUME_UP
+        if (keyCode == KeyEvent.KEYCODE_STEM_PRIMARY || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
             if (event.repeatCount > 0) {
                 // Ignore key repeats
                 return true
@@ -138,7 +144,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
         Log.d("MainActivity", "onKeyUp: keyCode=$keyCode, action=${event.action}")
-        if (keyCode == KeyEvent.KEYCODE_STEM_PRIMARY) {
+        
+        // Handle both STEM_PRIMARY and VOLUME_UP
+        if (keyCode == KeyEvent.KEYCODE_STEM_PRIMARY || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
             val pressDuration = event.eventTime - stemPrimaryDownTime
             Log.d("MainActivity", "onKeyUp: pressDuration=$pressDuration ms")
             if (pressDuration >= LONG_PRESS_DURATION_MS) {
@@ -151,7 +159,7 @@ class MainActivity : ComponentActivity() {
                 
                 onStemPrimaryLongPressed?.invoke()
             }
-            // Always consume the stem primary button event
+            // Always consume the control button event
             return true
         }
         return super.onKeyUp(keyCode, event)
