@@ -23,6 +23,11 @@
         <meta-data
             android:name="com.google.android.wearable.standalone"
             android:value="true" />
+        
+        <!-- Request control of the primary stem button -->
+        <meta-data
+            android:name="com.google.android.wearable.app.primary_key"
+            android:value="true" />
 
         <activity
             android:name=".presentation.MainActivity"

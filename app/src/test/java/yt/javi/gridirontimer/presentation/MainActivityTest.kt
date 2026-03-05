@@ -132,12 +132,14 @@ class MainActivityTest {
     }
 
     @Test
-    fun `triple rapid press triggers chained doubles`() {
+    fun `triple rapid press triggers triple callback`() {
         val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
         val singlePressCount = AtomicInteger(0)
         val doublePressCount = AtomicInteger(0)
+        val triplePressCount = AtomicInteger(0)
         setPrivateHandler(activity, "onStemPrimaryPressed") { singlePressCount.incrementAndGet() }
         setPrivateHandler(activity, "onStemPrimaryDoublePressed") { doublePressCount.incrementAndGet() }
+        setPrivateHandler(activity, "onStemPrimaryTriplePressed") { triplePressCount.incrementAndGet() }
 
         repeat(3) {
             activity.onKeyDown(
@@ -150,7 +152,32 @@ class MainActivityTest {
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(500))
 
         assertEquals(0, singlePressCount.get())
-        assertEquals(2, doublePressCount.get())
+        assertEquals(0, doublePressCount.get())
+        assertEquals(1, triplePressCount.get())
+    }
+
+    @Test
+    fun `long press triggers long callback`() {
+        val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+        val singlePressCount = AtomicInteger(0)
+        val longPressCount = AtomicInteger(0)
+        setPrivateHandler(activity, "onStemPrimaryPressed") { singlePressCount.incrementAndGet() }
+        setPrivateHandler(activity, "onStemPrimaryLongPressed") { longPressCount.incrementAndGet() }
+
+        val downTime = System.currentTimeMillis()
+        activity.onKeyDown(
+            KeyEvent.KEYCODE_STEM_PRIMARY,
+            KeyEvent(downTime, downTime, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_STEM_PRIMARY, 0)
+        )
+        ShadowSystemClock.advanceBy(Duration.ofMillis(600))
+        activity.onKeyUp(
+            KeyEvent.KEYCODE_STEM_PRIMARY,
+            KeyEvent(downTime, downTime + 600, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_STEM_PRIMARY, 0)
+        )
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(500))
+
+        assertEquals(0, singlePressCount.get())
+        assertEquals(1, longPressCount.get())
     }
 
     private fun setPrivateHandler(activity: MainActivity, fieldName: String, callback: () -> Unit) {
