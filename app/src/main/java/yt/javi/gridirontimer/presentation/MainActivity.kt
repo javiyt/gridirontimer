@@ -110,8 +110,9 @@ class MainActivity : ComponentActivity() {
                 stemPressCount = 0
                 
                 onStemPrimaryLongPressed?.invoke()
-                return true
             }
+            // Always consume the stem primary button event
+            return true
         }
         return super.onKeyUp(keyCode, event)
     }
