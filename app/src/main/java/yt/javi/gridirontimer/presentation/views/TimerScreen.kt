@@ -302,7 +302,12 @@ private fun GameClockDisplay(
     val gameClockColor = lerp(MaterialTheme.colors.onSurface, MaterialTheme.colors.onBackground, gameClockProgress)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            text = TimerUtils.formatTime(gameClockRemaining),
+            text = TimerUtils.formatTime(
+                if (gameClockState is TimerState.Idle && gameClockDuration > 0L) 
+                    gameClockDuration 
+                else 
+                    gameClockRemaining
+            ),
             style = TextStyle(
                 fontSize = 44.sp,
                 fontWeight = FontWeight.ExtraBold,
