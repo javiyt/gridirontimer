@@ -48,14 +48,18 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        Log.d("MainActivity", "dispatchKeyEvent: keyCode=${event.keyCode}, action=${event.action}")
+        // Log ALL key events to diagnose which key the emulator is sending
+        Log.d("MainActivity", "*** KEY EVENT: keyCode=${event.keyCode} (${KeyEvent.keyCodeToString(event.keyCode)}), action=${event.action}, scanCode=${event.scanCode}")
+        
         return if (event.keyCode == KeyEvent.KEYCODE_STEM_PRIMARY) {
+            Log.d("MainActivity", "Handling STEM_PRIMARY")
             when (event.action) {
                 KeyEvent.ACTION_DOWN -> onKeyDown(event.keyCode, event)
                 KeyEvent.ACTION_UP -> onKeyUp(event.keyCode, event)
                 else -> true
             }
         } else {
+            Log.d("MainActivity", "Passing to super: keyCode=${event.keyCode}")
             super.dispatchKeyEvent(event)
         }
     }
