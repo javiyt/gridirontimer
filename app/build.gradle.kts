@@ -62,7 +62,7 @@ tasks.withType<Test>().configureEach {
     
     // Optimize test execution
     testLogging {
-        events("passed", "skipped", "failed")
+        events("skipped", "failed")
         showStandardStreams = false
     }
 }
