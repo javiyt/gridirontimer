@@ -162,8 +162,10 @@ fun TimerScreen(
         onDispose { onStemPrimaryDoubleHandlerChange?.invoke(null) }
     }
 
-    LaunchedEffect(key1 = duration) {
-        viewModels.gameClockViewModel.startTimer(duration)
+    // Store the duration for later start when user taps on the time display
+    LaunchedEffect(key1 = Unit) {
+        // Timer is not started automatically anymore
+        // User must tap on the game clock time display to start it
     }
 
     if (gameClockState is TimerState.Finished) {
@@ -209,7 +211,8 @@ fun TimerScreen(
                             resetFlagTimers
                         ),
                 playClockPresetDuration = playClockPresetDuration,
-                flagActiveButton = flagActiveButton
+                flagActiveButton = flagActiveButton,
+                gameClockDuration = duration
                     )
                 } else {
                     TimeOutScreen(timeoutTimeRemaining, timeoutState, viewModels.timeoutViewModel, gameClockRemaining)
@@ -259,9 +262,15 @@ private fun GameAndPlayClockScreen(
     state: GameAndPlayClockScreenState,
     callbacks: GameAndPlayClockScreenCallbacks,
     playClockPresetDuration: Long?,
-    flagActiveButton: FlagActiveButton
+    flagActiveButton: FlagActiveButton,
+    gameClockDuration: Long
 ) {
-    GameClockDisplay(state.gameClockRemaining, state.gameClockState, state.gameClockViewModel)
+    GameClockDisplay(
+        gameClockRemaining = state.gameClockRemaining,
+        gameClockState = state.gameClockState,
+        gameClockViewModel = state.gameClockViewModel,
+        gameClockDuration = gameClockDuration
+    )
     if (state.gameClockState !is TimerState.Finished) {
         Spacer(modifier = Modifier.height(10.dp))
         PlayClockSelector(
@@ -282,7 +291,8 @@ private fun GameAndPlayClockScreen(
 private fun GameClockDisplay(
     gameClockRemaining: Long,
     gameClockState: TimerState,
-    gameClockViewModel: TimerViewModel
+    gameClockViewModel: TimerViewModel,
+    gameClockDuration: Long = 0L
 ) {
     val gameClockProgress by animateFloatAsState(
         targetValue = if (gameClockState is TimerState.Running) 1f else 0f,
@@ -303,6 +313,7 @@ private fun GameClockDisplay(
                 when (gameClockState) {
                     is TimerState.Running -> gameClockViewModel.pauseTimer()
                     is TimerState.Paused -> gameClockViewModel.resumeTimer()
+                    is TimerState.Idle -> if (gameClockDuration > 0L) gameClockViewModel.startTimer(gameClockDuration)
                     else -> {}
                 }
             }),
