@@ -39,10 +39,13 @@ import androidx.wear.tooling.preview.devices.WearDevices
 import yt.javi.gridirontimer.R
 import yt.javi.gridirontimer.presentation.MainActivity.Screen
 import yt.javi.gridirontimer.presentation.theme.GridironTimerTheme
+import yt.javi.gridirontimer.presentation.viewmodel.AppTimerSettings
 
 @Composable
 fun MainScreen(navController: NavController) {
     var reveal by remember { mutableStateOf(false) }
+    val flagDurationMs = AppTimerSettings.flagGameDurationMs
+    val tackleDurationMs = AppTimerSettings.tackleGameDurationMs
     LaunchedEffect(Unit) { reveal = true }
     val titleAlpha by animateFloatAsState(
         targetValue = if (reveal) 1f else 0f,
@@ -88,7 +91,7 @@ fun MainScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
-                    onClick = { navController.navigate(Screen.Timer.createRoute(20L * 60L * 1000L)) },
+                    onClick = { navController.navigate(Screen.Timer.createRoute(flagDurationMs, isFlagMode = true)) },
                     modifier = Modifier
                         .width(124.dp)
                         .height(44.dp)
@@ -102,7 +105,7 @@ fun MainScreen(navController: NavController) {
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
-                    onClick = { navController.navigate(Screen.Timer.createRoute(12L * 60L * 1000L)) },
+                    onClick = { navController.navigate(Screen.Timer.createRoute(tackleDurationMs, isFlagMode = false)) },
                     modifier = Modifier
                         .width(124.dp)
                         .height(44.dp)
@@ -112,6 +115,19 @@ fun MainScreen(navController: NavController) {
                     Text(
                         text = stringResource(R.string.tackle),
                         style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { navController.navigate(Screen.CustomTimer.route) },
+                    modifier = Modifier
+                        .width(124.dp)
+                        .height(36.dp),
+                    colors = ButtonDefaults.secondaryButtonColors()
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings),
+                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     )
                 }
             }

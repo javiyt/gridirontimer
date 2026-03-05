@@ -20,6 +20,7 @@ import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import yt.javi.gridirontimer.presentation.theme.GridironTimerTheme
+import yt.javi.gridirontimer.presentation.viewmodel.AppTimerSettings
 import yt.javi.gridirontimer.presentation.views.CustomTimerScreen
 import yt.javi.gridirontimer.presentation.views.MainScreen
 import yt.javi.gridirontimer.presentation.views.TimerScreen
@@ -69,8 +70,11 @@ class MainActivity : ComponentActivity() {
 
     sealed class Screen(val route: String) {
         object Main : Screen("main")
-        object Timer : Screen("timer/{duration}") {
-            fun createRoute(duration: Long) = "timer/$duration"
+        object Timer : Screen("timer/{duration}/{mode}") {
+            fun createRoute(duration: Long, isFlagMode: Boolean): String {
+                val mode = if (isFlagMode) "flag" else "tackle"
+                return "timer/$duration/$mode"
+            }
         }
 
         object CustomTimer : Screen("custom_timer")
@@ -86,14 +90,19 @@ class MainActivity : ComponentActivity() {
             composable(Screen.Main.route) { MainScreen(navController) }
             composable(
                 route = Screen.Timer.route,
-                arguments = listOf(navArgument("duration") { type = NavType.LongType })
+                arguments = listOf(
+                    navArgument("duration") { type = NavType.LongType },
+                    navArgument("mode") { type = NavType.StringType }
+                )
             ) { navBackStackEntry ->
                 val duration = navBackStackEntry.arguments?.getLong("duration") ?: 0L
-                val initialDuration = navBackStackEntry.arguments?.getLong("duration") ?: 0L
+                val mode = navBackStackEntry.arguments?.getString("mode") ?: "flag"
+                val isFlagMode = mode == "flag"
                 TimerScreen(
                     duration = duration,
                     navController = navController,
-                    initialDuration = initialDuration,
+                    isFlagMode = isFlagMode,
+                    timerConfig = AppTimerSettings.asTimerConfig(),
                     onStemPrimaryHandlerChange = { handler -> onStemPrimaryPressed = handler },
                     onStemPrimaryDoubleHandlerChange = { handler -> onStemPrimaryDoublePressed = handler }
                 )

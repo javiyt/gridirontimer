@@ -95,7 +95,7 @@ fun createTimerScreenViewModels(): TimerScreenViewModels = TimerScreenViewModels
 fun TimerScreen(
     duration: Long,
     navController: NavController,
-    initialDuration: Long,
+    isFlagMode: Boolean,
     timerConfig: TimerConfig = TimerConfigs.Default,
     viewModels: TimerScreenViewModels = createTimerScreenViewModels(),
     onStemPrimaryHandlerChange: (((() -> Unit)?) -> Unit)? = null,
@@ -111,7 +111,6 @@ fun TimerScreen(
     val sevenSecondClockRemaining by viewModels.sevenSecondClockViewModel.time.collectAsState()
     val timeoutState by viewModels.timeoutViewModel.state.collectAsState()
     val timeoutTimeRemaining by viewModels.timeoutViewModel.time.collectAsState()
-    val isFlagMode = TimerRules.isFlagMode(initialDuration, timerConfig)
     val activePlayClockState = if (isFlagMode && sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused)) {
         sevenSecondClockState
     } else {
@@ -212,7 +211,8 @@ fun TimerScreen(
                         ),
                 playClockPresetDuration = playClockPresetDuration,
                 flagActiveButton = flagActiveButton,
-                gameClockDuration = duration
+                gameClockDuration = duration,
+                timeoutDurationMs = timerConfig.timeoutDurationMs
                     )
                 } else {
                     TimeOutScreen(timeoutTimeRemaining, timeoutState, viewModels.timeoutViewModel, gameClockRemaining)
@@ -263,7 +263,8 @@ private fun GameAndPlayClockScreen(
     callbacks: GameAndPlayClockScreenCallbacks,
     playClockPresetDuration: Long?,
     flagActiveButton: FlagActiveButton,
-    gameClockDuration: Long
+    gameClockDuration: Long,
+    timeoutDurationMs: Long
 ) {
     GameClockDisplay(
         gameClockRemaining = state.gameClockRemaining,
@@ -283,7 +284,7 @@ private fun GameAndPlayClockScreen(
             flagActiveButton = flagActiveButton
         )
         Spacer(modifier = Modifier.height(10.dp))
-        TimeoutButton(isFlagMode, state, callbacks)
+        TimeoutButton(isFlagMode, state, callbacks, timeoutDurationMs)
     }
 }
 
@@ -369,7 +370,8 @@ private fun PlayClockSelector(
 private fun TimeoutButton(
     isFlagMode: Boolean,
     state: GameAndPlayClockScreenState,
-    callbacks: GameAndPlayClockScreenCallbacks
+    callbacks: GameAndPlayClockScreenCallbacks,
+    timeoutDurationMs: Long
 ) {
     Button(
         onClick = {
@@ -379,7 +381,7 @@ private fun TimeoutButton(
             } else {
                 state.playClockViewModel.cancelTimer()
             }
-            state.timeoutViewModel.startTimer()
+            state.timeoutViewModel.startTimer(timeoutDurationMs)
         },
         modifier = Modifier.width(92.dp),
         colors = ButtonDefaults.secondaryButtonColors()
@@ -568,7 +570,7 @@ fun TimerPreview() {
         TimerScreen(
             duration = TimerConfigs.Default.flagGameDurationMs,
             rememberSwipeDismissableNavController(),
-            initialDuration = TimerConfigs.Default.flagGameDurationMs
+            isFlagMode = true
         )
     }
 }

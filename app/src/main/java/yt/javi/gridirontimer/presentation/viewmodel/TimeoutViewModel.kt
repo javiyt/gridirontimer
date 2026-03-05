@@ -17,11 +17,11 @@ class TimeoutViewModel(
     private val _state = MutableStateFlow<TimerState>(TimerState.Idle)
     val state: StateFlow<TimerState> = _state.asStateFlow()
 
-    fun startTimer() {
+    fun startTimer(durationMs: Long = timerConfig.timeoutDurationMs) {
         timer?.cancel()
         _state.value = TimerState.Running
         timer = countdownScheduler.create(
-            timerConfig.timeoutDurationMs,
+            durationMs,
             timerConfig.tickIntervalMs,
             onTick = { millisUntilFinished ->
                 _time.value = millisUntilFinished
