@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -30,11 +32,13 @@ import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import yt.javi.gridirontimer.R
-import yt.javi.gridirontimer.presentation.MainActivity.Screen.Timer
+import yt.javi.gridirontimer.presentation.viewmodel.AppTimerSettings
 
 @Composable
 fun CustomTimerScreen(navController: NavController) {
-    var minutes by remember { mutableIntStateOf(0) }
+    var flagMinutes by remember { mutableIntStateOf((AppTimerSettings.flagGameDurationMs / 60_000L).toInt()) }
+    var tackleMinutes by remember { mutableIntStateOf((AppTimerSettings.tackleGameDurationMs / 60_000L).toInt()) }
+    var timeoutSeconds by remember { mutableIntStateOf((AppTimerSettings.timeoutDurationMs / 1_000L).toInt()) }
     val bg = Brush.radialGradient(
         colors = listOf(Color(0xFF16243A), MaterialTheme.colors.background),
         radius = 360f
@@ -48,47 +52,94 @@ fun CustomTimerScreen(navController: NavController) {
         contentAlignment = Alignment.Center
     ) {
         Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top
         ) {
             Text(
-                text = "Select minutes",
+                text = stringResource(R.string.settings),
                 style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colors.onSurface)
             )
 
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = { minutes = (minutes - 1).coerceAtLeast(0) },
-                    colors = ButtonDefaults.secondaryButtonColors()
-                ) {
-                    Text("-")
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = "$minutes",
-                    style = TextStyle(fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colors.onBackground)
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Button(
-                    onClick = { minutes++ },
-                    colors = ButtonDefaults.primaryButtonColors()
-                ) {
-                    Text("+")
-                }
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingStepper(
+                label = stringResource(R.string.flag_game_clock),
+                valueText = "$flagMinutes min",
+                onDecrease = { flagMinutes = (flagMinutes - 1).coerceAtLeast(1) },
+                onIncrease = { flagMinutes += 1 }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingStepper(
+                label = stringResource(R.string.tackle_game_clock),
+                valueText = "$tackleMinutes min",
+                onDecrease = { tackleMinutes = (tackleMinutes - 1).coerceAtLeast(1) },
+                onIncrease = { tackleMinutes += 1 }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingStepper(
+                label = stringResource(R.string.timeout_clock),
+                valueText = "$timeoutSeconds s",
+                onDecrease = { timeoutSeconds = (timeoutSeconds - 5).coerceAtLeast(5) },
+                onIncrease = { timeoutSeconds += 5 }
+            )
+
             Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = {
-                    navController.navigate(Timer.createRoute(minutes * 60L * 1000L))
+                    AppTimerSettings.flagGameDurationMs = flagMinutes * 60L * 1_000L
+                    AppTimerSettings.tackleGameDurationMs = tackleMinutes * 60L * 1_000L
+                    AppTimerSettings.timeoutDurationMs = timeoutSeconds * 1_000L
+                    navController.popBackStack()
                 },
                 modifier = Modifier.width(110.dp),
                 colors = ButtonDefaults.primaryButtonColors()
             ) {
-                Text(stringResource(R.string.start))
+                Text(stringResource(R.string.save))
             }
+        }
+    }
+}
+
+@Composable
+private fun SettingStepper(
+    label: String,
+    valueText: String,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit
+) {
+    Text(
+        text = label,
+        style = TextStyle(
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colors.onSurface
+        )
+    )
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Button(
+            onClick = onDecrease,
+            colors = ButtonDefaults.secondaryButtonColors()
+        ) {
+            Text("-")
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = valueText,
+            style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colors.onBackground)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Button(
+            onClick = onIncrease,
+            colors = ButtonDefaults.primaryButtonColors()
+        ) {
+            Text("+")
         }
     }
 }

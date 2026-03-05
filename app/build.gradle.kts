@@ -109,6 +109,7 @@ kover {
                 classes(
                     "yt.javi.gridirontimer.presentation.views.*",
                     "yt.javi.gridirontimer.presentation.theme.*",
+                    "yt.javi.gridirontimer.presentation.MainActivity",
                     "yt.javi.gridirontimer.presentation.*$*"
                 )
             }
