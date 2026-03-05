@@ -9,7 +9,6 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -40,7 +39,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d("MainActivity", "=== onCreate ===")
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent {
             GridironTimerTheme {
@@ -49,58 +47,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        Log.d("MainActivity", "=== onResume - app is in FOREGROUND ===")
-    }
-
-    override fun onPause() {
-        Log.d("MainActivity", "=== onPause - app going to BACKGROUND ===")
-        super.onPause()
-    }
-
-    override fun onUserLeaveHint() {
-        Log.d("MainActivity", "=== onUserLeaveHint - User is leaving app (HOME/RECENT pressed?) ===")
-        // Try to prevent going to background - this might not work but worth trying
-        super.onUserLeaveHint()
-    }
-
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        // Log ALL key events to diagnose which key the emulator is sending
-        Log.d("MainActivity", "*** KEY EVENT: keyCode=${event.keyCode} (${KeyEvent.keyCodeToString(event.keyCode)}), action=${event.action}, scanCode=${event.scanCode}")
-        
-        // Accept STEM_PRIMARY (real device), VOLUME_UP and DPAD_UP (emulator workarounds)
-        // Also accept KEYCODE_UNKNOWN with scanCode 125 (emulator volume button raw code)
-        val isControlButton = event.keyCode == KeyEvent.KEYCODE_STEM_PRIMARY || 
-                             event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
-                             event.keyCode == KeyEvent.KEYCODE_DPAD_UP ||
-                             (event.keyCode == KeyEvent.KEYCODE_UNKNOWN && event.scanCode == VOLUME_BUTTON_SCAN_CODE)
-        
-        return if (isControlButton) {
-            Log.d("MainActivity", "Handling control button: ${KeyEvent.keyCodeToString(event.keyCode)}")
+        return if (isControlButton(event.keyCode, event)) {
             when (event.action) {
                 KeyEvent.ACTION_DOWN -> onKeyDown(event.keyCode, event)
                 KeyEvent.ACTION_UP -> onKeyUp(event.keyCode, event)
                 else -> true
             }
         } else {
-            Log.d("MainActivity", "Passing to super: keyCode=${event.keyCode}")
             super.dispatchKeyEvent(event)
         }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        Log.d("MainActivity", "onKeyDown: keyCode=$keyCode, action=${event.action}, repeatCount=${event.repeatCount}")
-        
-        // Handle STEM_PRIMARY (real device), VOLUME_UP and DPAD_UP (emulator)
-        // Also handle KEYCODE_UNKNOWN with scanCode 125 (emulator volume button)
-        val isControlButton = keyCode == KeyEvent.KEYCODE_STEM_PRIMARY || 
-            keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
-            keyCode == KeyEvent.KEYCODE_DPAD_UP ||
-            (keyCode == KeyEvent.KEYCODE_UNKNOWN && event.scanCode == VOLUME_BUTTON_SCAN_CODE)
-        
-        if (isControlButton) {
+        if (isControlButton(keyCode, event)) {
             if (event.repeatCount > 0) {
                 // Ignore key repeats
                 return true
@@ -154,18 +115,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        Log.d("MainActivity", "onKeyUp: keyCode=$keyCode, action=${event.action}")
-        
-        // Handle STEM_PRIMARY (real device), VOLUME_UP and DPAD_UP (emulator)
-        // Also handle KEYCODE_UNKNOWN with scanCode 125 (emulator volume button)
-        val isControlButton = keyCode == KeyEvent.KEYCODE_STEM_PRIMARY || 
-            keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
-            keyCode == KeyEvent.KEYCODE_DPAD_UP ||
-            (keyCode == KeyEvent.KEYCODE_UNKNOWN && event.scanCode == VOLUME_BUTTON_SCAN_CODE)
-        
-        if (isControlButton) {
+        if (isControlButton(keyCode, event)) {
             val pressDuration = event.eventTime - stemPrimaryDownTime
-            Log.d("MainActivity", "onKeyUp: pressDuration=$pressDuration ms")
             if (pressDuration >= LONG_PRESS_DURATION_MS) {
                 // Cancel any pending actions
                 pendingSinglePress?.let { mainHandler.removeCallbacks(it) }
@@ -233,6 +184,17 @@ class MainActivity : ComponentActivity() {
             }
             composable(Screen.CustomTimer.route) { CustomTimerScreen(navController) }
         }
+    }
+
+    /**
+     * Checks if the given key event corresponds to a control button.
+     * Accepts STEM_PRIMARY (real device), VOLUME_UP, DPAD_UP, and KEYCODE_UNKNOWN with scanCode 125 (emulator workarounds).
+     */
+    private fun isControlButton(keyCode: Int, event: KeyEvent): Boolean {
+        return keyCode == KeyEvent.KEYCODE_STEM_PRIMARY ||
+               keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+               keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+               (keyCode == KeyEvent.KEYCODE_UNKNOWN && event.scanCode == VOLUME_BUTTON_SCAN_CODE)
     }
 
     private companion object {
