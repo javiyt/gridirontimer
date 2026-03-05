@@ -47,9 +47,26 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        Log.d("MainActivity", "dispatchKeyEvent: keyCode=${event.keyCode}, action=${event.action}")
+        return if (event.keyCode == KeyEvent.KEYCODE_STEM_PRIMARY) {
+            when (event.action) {
+                KeyEvent.ACTION_DOWN -> onKeyDown(event.keyCode, event)
+                KeyEvent.ACTION_UP -> onKeyUp(event.keyCode, event)
+                else -> true
+            }
+        } else {
+            super.dispatchKeyEvent(event)
+        }
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        Log.d("MainActivity", "onKeyDown: $keyCode")
-        if (keyCode == KeyEvent.KEYCODE_STEM_PRIMARY && event.action == KeyEvent.ACTION_DOWN) {
+        Log.d("MainActivity", "onKeyDown: keyCode=$keyCode, action=${event.action}, repeatCount=${event.repeatCount}")
+        if (keyCode == KeyEvent.KEYCODE_STEM_PRIMARY) {
+            if (event.repeatCount > 0) {
+                // Ignore key repeats
+                return true
+            }
             stemPrimaryDownTime = event.eventTime
             val now = System.currentTimeMillis()
             val withinMultiPressWindow = now - lastStemPrimaryPressAt <= MULTI_PRESS_WINDOW_MS
@@ -99,8 +116,10 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        Log.d("MainActivity", "onKeyUp: keyCode=$keyCode, action=${event.action}")
         if (keyCode == KeyEvent.KEYCODE_STEM_PRIMARY) {
             val pressDuration = event.eventTime - stemPrimaryDownTime
+            Log.d("MainActivity", "onKeyUp: pressDuration=$pressDuration ms")
             if (pressDuration >= LONG_PRESS_DURATION_MS) {
                 // Cancel any pending actions
                 pendingSinglePress?.let { mainHandler.removeCallbacks(it) }
