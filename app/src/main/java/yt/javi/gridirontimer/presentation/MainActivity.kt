@@ -14,8 +14,12 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import androidx.wear.ambient.AmbientLifecycleObserver
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
@@ -37,12 +41,31 @@ class MainActivity : ComponentActivity() {
     private var pendingDoublePress: Runnable? = null
     private var stemPrimaryDownTime = 0L
 
+    private var isAmbientMode by mutableStateOf(false)
+
+    private val ambientCallback = object : AmbientLifecycleObserver.AmbientLifecycleCallback {
+        override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+            isAmbientMode = true
+        }
+
+        override fun onExitAmbient() {
+            isAmbientMode = false
+        }
+
+        override fun onUpdateAmbient() {
+            // Optional: Handle periodic updates (once per minute)
+        }
+    }
+
+    private val ambientObserver = AmbientLifecycleObserver(this, ambientCallback)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        lifecycle.addObserver(ambientObserver)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent {
             GridironTimerTheme {
-                WearApp()
+                WearApp(isAmbientMode)
             }
         }
     }
@@ -154,7 +177,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun WearApp() {
+    fun WearApp(isAmbient: Boolean) {
         val navController = rememberSwipeDismissableNavController()
         SwipeDismissableNavHost(
             navController = navController,
@@ -176,6 +199,7 @@ class MainActivity : ComponentActivity() {
                     navController = navController,
                     isFlagMode = isFlagMode,
                     timerConfig = AppTimerSettings.asTimerConfig(),
+                    isAmbientMode = isAmbient,
                     onStemPrimaryHandlerChange = { handler -> onStemPrimaryPressed = handler },
                     onStemPrimaryDoubleHandlerChange = { handler -> onStemPrimaryDoublePressed = handler },
                     onStemPrimaryTripleHandlerChange = { handler -> onStemPrimaryTriplePressed = handler },

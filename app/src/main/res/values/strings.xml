@@ -26,4 +26,5 @@
     <string name="tackle_game_clock">Tackle game clock</string>
     <string name="timeout_clock">Timeout clock</string>
     <string name="save">Save</string>
+    <string name="two_minute_warning">2 minute warning</string>
 </resources>
