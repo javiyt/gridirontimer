@@ -57,11 +57,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val ambientObserver = AmbientLifecycleObserver(this, ambientCallback)
+    private var ambientObserver: AmbientLifecycleObserver? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        lifecycle.addObserver(ambientObserver)
+        
+        try {
+            ambientObserver = AmbientLifecycleObserver(this, ambientCallback).also {
+                lifecycle.addObserver(it)
+            }
+        } catch (e: NoClassDefFoundError) {
+            // Handling for environments where Wearable classes are missing (e.g. some unit tests)
+        }
+
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent {
             GridironTimerTheme {
@@ -216,6 +224,9 @@ class MainActivity : ComponentActivity() {
      */
     private fun isControlButton(keyCode: Int, event: KeyEvent): Boolean {
         return keyCode == KeyEvent.KEYCODE_STEM_PRIMARY ||
+               keyCode == KeyEvent.KEYCODE_STEM_1 ||
+               keyCode == KeyEvent.KEYCODE_STEM_2 ||
+               keyCode == KeyEvent.KEYCODE_STEM_3 ||
                keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
                keyCode == KeyEvent.KEYCODE_DPAD_UP ||
                (keyCode == KeyEvent.KEYCODE_UNKNOWN && event.scanCode == VOLUME_BUTTON_SCAN_CODE)
