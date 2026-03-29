@@ -7,6 +7,7 @@ playServicesWearable = "19.0.0"
 composeBom = "2026.03.00"
 composeMaterial = "1.5.6"
 composeFoundation = "1.5.6"
+wear = "1.4.0"
 wearInput = "1.2.0"
 wearPhoneInteractions = "1.1.0"
 wearToolingPreview = "1.0.0"
@@ -17,6 +18,7 @@ robolectric = "4.16.1"
 androidxTestCore = "1.7.0"
 jacoco = "0.8.13"
 kover = "0.9.7"
+wear-ongoing = "1.1.0"
 
 [libraries]
 compose-navigation = { module = "androidx.wear.compose:compose-navigation", version.ref = "composeNavigation" }
@@ -29,6 +31,8 @@ ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
 compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation", version.ref = "composeFoundation" }
+wear = { group = "androidx.wear", name = "wear", version.ref = "wear" }
+wear-ongoing = { group = "androidx.wear", name = "wear-ongoing", version.ref = "wear-ongoing" }
 wear-input = { module = "androidx.wear:wear-input", version.ref = "wearInput" }
 wear-phone-interactions = { module = "androidx.wear:wear-phone-interactions", version.ref = "wearPhoneInteractions" }
 wear-tooling-preview = { group = "androidx.wear", name = "wear-tooling-preview", version.ref = "wearToolingPreview" }

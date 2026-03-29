@@ -1,6 +1,7 @@
 package yt.javi.gridirontimer.presentation.views
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +44,7 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import androidx.wear.tooling.preview.devices.WearDevices
 import yt.javi.gridirontimer.R
+import yt.javi.gridirontimer.presentation.TimerService
 import yt.javi.gridirontimer.presentation.theme.GridironTimerTheme
 import yt.javi.gridirontimer.presentation.viewmodel.PlayClockViewModel
 import yt.javi.gridirontimer.presentation.viewmodel.TimerConfig
@@ -97,12 +100,21 @@ fun TimerScreen(
     isFlagMode: Boolean,
     timerConfig: TimerConfig = TimerConfigs.Default,
     viewModels: TimerScreenViewModels = createTimerScreenViewModels(),
+    isAmbientMode: Boolean = false,
     onStemPrimaryHandlerChange: (((() -> Unit)?) -> Unit)? = null,
     onStemPrimaryDoubleHandlerChange: (((() -> Unit)?) -> Unit)? = null,
     onStemPrimaryTripleHandlerChange: (((() -> Unit)?) -> Unit)? = null,
     onStemPrimaryLongHandlerChange: (((() -> Unit)?) -> Unit)? = null,
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
+    DisposableEffect(view) {
+        view.keepScreenOn = true
+        onDispose {
+            view.keepScreenOn = false
+            context.stopService(Intent(context, TimerService::class.java))
+        }
+    }
     val gameClockState by viewModels.gameClockViewModel.state.collectAsState()
     val gameClockRemaining by viewModels.gameClockViewModel.time.collectAsState()
     val playClockState by viewModels.playClockViewModel.state.collectAsState()
@@ -112,6 +124,18 @@ fun TimerScreen(
     val sevenSecondClockRemaining by viewModels.sevenSecondClockViewModel.time.collectAsState()
     val timeoutState by viewModels.timeoutViewModel.state.collectAsState()
     val timeoutTimeRemaining by viewModels.timeoutViewModel.time.collectAsState()
+    
+    LaunchedEffect(gameClockState, playClockState, sevenSecondClockState, timeoutState) {
+        val isAnyTimerRunning = gameClockState is TimerState.Running || 
+                                playClockState is TimerState.Running || 
+                                sevenSecondClockState is TimerState.Running || 
+                                timeoutState is TimerState.Running
+        
+        if (isAnyTimerRunning) {
+            context.startForegroundService(Intent(context, TimerService::class.java))
+        }
+    }
+
     val activePlayClockState = if (isFlagMode && sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused)) {
         sevenSecondClockState
     } else {
@@ -203,10 +227,14 @@ fun TimerScreen(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        val bg = Brush.radialGradient(
-            colors = listOf(Color(0xFF132033), MaterialTheme.colors.background),
-            radius = 360f
-        )
+        val bg = if (isAmbientMode) {
+            Brush.linearGradient(colors = listOf(Color.Black, Color.Black))
+        } else {
+            Brush.radialGradient(
+                colors = listOf(Color(0xFF132033), MaterialTheme.colors.background),
+                radius = 360f
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -239,10 +267,17 @@ fun TimerScreen(
                 playClockPresetDuration = playClockPresetDuration,
                 flagActiveButton = flagActiveButton,
                 gameClockDuration = duration,
-                timeoutDurationMs = timerConfig.timeoutDurationMs
+                timeoutDurationMs = timerConfig.timeoutDurationMs,
+                isAmbientMode = isAmbientMode
                     )
                 } else {
-                    TimeOutScreen(timeoutTimeRemaining, timeoutState, viewModels.timeoutViewModel, gameClockRemaining)
+                    TimeOutScreen(
+                        timeoutTimeRemaining, 
+                        timeoutState, 
+                        viewModels.timeoutViewModel, 
+                        gameClockRemaining,
+                        isAmbientMode = isAmbientMode
+                    )
                 }
             }
         }
@@ -251,28 +286,32 @@ fun TimerScreen(
     LaunchedEffect(key1 = gameClockRemaining) {
         if (
             (gameClockRemaining.isTwoMinutesWarning(timerConfig) || gameClockRemaining.isFinalSeconds(timerConfig)) &&
-            gameClockState is TimerState.Running
+            gameClockState is TimerState.Running && !isAmbientMode
         ) {
-            TimerUtils.vibrate(context)
+            if (gameClockRemaining.isTwoMinutesWarning(timerConfig)) {
+                TimerUtils.vibrate(context, pulses = 5)
+            } else {
+                TimerUtils.vibrate(context)
+            }
         }
     }
     LaunchedEffect(key1 = activePlayClockRemaining) {
-        if (TimerRules.shouldVibratePlayClockWarning(activePlayClockRemaining, activePlayClockState, timerConfig)) {
+        if (TimerRules.shouldVibratePlayClockWarning(activePlayClockRemaining, activePlayClockState, timerConfig) && !isAmbientMode) {
             TimerUtils.vibrate(context)
         }
     }
     LaunchedEffect(key1 = timeoutTimeRemaining) {
-        if (TimerRules.shouldVibrateTimeoutWarning(timeoutTimeRemaining, timeoutState, timerConfig)) {
+        if (TimerRules.shouldVibrateTimeoutWarning(timeoutTimeRemaining, timeoutState, timerConfig) && !isAmbientMode) {
             TimerUtils.vibrate(context, pulses = 2)
         }
     }
     LaunchedEffect(key1 = timeoutState) {
-        if (TimerRules.shouldVibrateOnTimeoutFinish(timeoutState)) {
+        if (TimerRules.shouldVibrateOnTimeoutFinish(timeoutState) && !isAmbientMode) {
             TimerUtils.vibrate(context, pulses = 3)
         }
     }
     LaunchedEffect(key1 = sevenSecondClockState) {
-        if (TimerRules.shouldVibrateOnSevenSecondFinish(isFlagMode, sevenSecondClockState)) {
+        if (TimerRules.shouldVibrateOnSevenSecondFinish(isFlagMode, sevenSecondClockState) && !isAmbientMode) {
             TimerUtils.vibrate(context, pulses = 3)
         }
     }
@@ -286,15 +325,17 @@ private fun GameAndPlayClockScreen(
     playClockPresetDuration: Long?,
     flagActiveButton: FlagActiveButton,
     gameClockDuration: Long,
-    timeoutDurationMs: Long
+    timeoutDurationMs: Long,
+    isAmbientMode: Boolean = false
 ) {
     GameClockDisplay(
         gameClockRemaining = state.gameClockRemaining,
         gameClockState = state.gameClockState,
         gameClockViewModel = state.gameClockViewModel,
-        gameClockDuration = gameClockDuration
+        gameClockDuration = gameClockDuration,
+        isAmbientMode = isAmbientMode
     )
-    if (state.gameClockState !is TimerState.Finished) {
+    if (state.gameClockState !is TimerState.Finished && !isAmbientMode) {
         Spacer(modifier = Modifier.height(10.dp))
         PlayClockSelector(
             isFlagMode = isFlagMode,
@@ -315,14 +356,15 @@ private fun GameClockDisplay(
     gameClockRemaining: Long,
     gameClockState: TimerState,
     gameClockViewModel: TimerViewModel,
-    gameClockDuration: Long = 0L
+    gameClockDuration: Long = 0L,
+    isAmbientMode: Boolean = false
 ) {
     val gameClockProgress by animateFloatAsState(
         targetValue = if (gameClockState is TimerState.Running) 1f else 0f,
         animationSpec = spring(dampingRatio = 0.82f, stiffness = 300f),
         label = "game_clock_progress"
     )
-    val gameClockColor = lerp(MaterialTheme.colors.onSurface, MaterialTheme.colors.onBackground, gameClockProgress)
+    val gameClockColor = if (isAmbientMode) Color.White else lerp(MaterialTheme.colors.onSurface, MaterialTheme.colors.onBackground, gameClockProgress)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = TimerUtils.formatTime(
@@ -332,12 +374,12 @@ private fun GameClockDisplay(
                     gameClockRemaining
             ),
             style = TextStyle(
-                fontSize = 44.sp,
+                fontSize = if (isAmbientMode) 54.sp else 44.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = gameClockColor,
                 letterSpacing = 0.6.sp
             ),
-            modifier = Modifier.clickable(true, onClick = {
+            modifier = Modifier.clickable(!isAmbientMode, onClick = {
                 when (gameClockState) {
                     is TimerState.Running -> gameClockViewModel.pauseTimer()
                     is TimerState.Paused -> gameClockViewModel.resumeTimer()
@@ -346,18 +388,20 @@ private fun GameClockDisplay(
                 }
             }),
         )
-        Text(
-            text = when (gameClockState) {
-                is TimerState.Running -> stringResource(R.string.status_running)
-                is TimerState.Paused -> stringResource(R.string.status_paused)
-                else -> stringResource(R.string.status_ready)
-            },
-            style = TextStyle(
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colors.onSurface
+        if (!isAmbientMode) {
+            Text(
+                text = when (gameClockState) {
+                    is TimerState.Running -> stringResource(R.string.status_running)
+                    is TimerState.Paused -> stringResource(R.string.status_paused)
+                    else -> stringResource(R.string.status_ready)
+                },
+                style = TextStyle(
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colors.onSurface
+                )
             )
-        )
+        }
     }
 }
 
@@ -502,14 +546,15 @@ private fun TimeOutScreen(
     timeoutTimeRemaining: Long,
     timeoutState: TimerState,
     timeoutViewModel: TimeoutViewModel,
-    gameClockRemaining: Long
+    gameClockRemaining: Long,
+    isAmbientMode: Boolean = false
 ) {
     val timeoutProgress by animateFloatAsState(
         targetValue = if (timeoutState is TimerState.Running) 1f else 0f,
         animationSpec = spring(dampingRatio = 0.8f, stiffness = 260f),
         label = "timeout_progress"
     )
-    val timeoutColor = lerp(MaterialTheme.colors.onSurface, MaterialTheme.colors.secondary, timeoutProgress)
+    val timeoutColor = if (isAmbientMode) Color.White else lerp(MaterialTheme.colors.onSurface, MaterialTheme.colors.secondary, timeoutProgress)
     Text(
         text = stringResource(R.string.game_time, TimerUtils.formatTime(gameClockRemaining)),
         style = TextStyle(
@@ -521,12 +566,12 @@ private fun TimeOutScreen(
     Text(
         text = TimerUtils.formatSeconds(timeoutTimeRemaining),
         style = TextStyle(
-            fontSize = 54.sp,
+            fontSize = if (isAmbientMode) 64.sp else 54.sp,
             fontWeight = FontWeight.ExtraBold,
             color = timeoutColor,
             letterSpacing = 0.4.sp
         ),
-        modifier = Modifier.clickable(true, onClick = {
+        modifier = Modifier.clickable(!isAmbientMode, onClick = {
             when (timeoutState) {
                 is TimerState.Running -> timeoutViewModel.pauseTimer()
                 is TimerState.Paused -> timeoutViewModel.resumeTimer()
@@ -534,14 +579,16 @@ private fun TimeOutScreen(
             }
         }),
     )
-    Button(
-        onClick = {
-            timeoutViewModel.stopTimer()
-        },
-        modifier = Modifier.width(100.dp),
-        colors = ButtonDefaults.secondaryButtonColors()
-    ) {
-        Text(text = stringResource(R.string.stop), style = TextStyle(fontWeight = FontWeight.Bold))
+    if (!isAmbientMode) {
+        Button(
+            onClick = {
+                timeoutViewModel.stopTimer()
+            },
+            modifier = Modifier.width(100.dp),
+            colors = ButtonDefaults.secondaryButtonColors()
+        ) {
+            Text(text = stringResource(R.string.stop), style = TextStyle(fontWeight = FontWeight.Bold))
+        }
     }
 }
 

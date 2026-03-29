@@ -138,6 +138,8 @@ dependencies {
     implementation(libs.lifecycle.runtime.ktx)
     implementation(libs.wear.phone.interactions)
     implementation(libs.wear.input)
+    implementation(libs.wear)
+    implementation(libs.wear.ongoing)
 
     testImplementation(libs.junit4)
     testImplementation(libs.robolectric)

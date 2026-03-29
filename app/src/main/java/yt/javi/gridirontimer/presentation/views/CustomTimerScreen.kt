@@ -39,6 +39,8 @@ fun CustomTimerScreen(navController: NavController) {
     var flagMinutes by remember { mutableIntStateOf((AppTimerSettings.flagGameDurationMs / 60_000L).toInt()) }
     var tackleMinutes by remember { mutableIntStateOf((AppTimerSettings.tackleGameDurationMs / 60_000L).toInt()) }
     var timeoutSeconds by remember { mutableIntStateOf((AppTimerSettings.timeoutDurationMs / 1_000L).toInt()) }
+    var twoMinuteWarningMinutes by remember { mutableIntStateOf((AppTimerSettings.twoMinuteWarningMs / 60_000L).toInt()) }
+
     val bg = Brush.radialGradient(
         colors = listOf(Color(0xFF16243A), MaterialTheme.colors.background),
         radius = 360f
@@ -81,6 +83,14 @@ fun CustomTimerScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(8.dp))
             SettingStepper(
+                label = stringResource(R.string.two_minute_warning),
+                valueText = "$twoMinuteWarningMinutes min",
+                onDecrease = { twoMinuteWarningMinutes = (twoMinuteWarningMinutes - 1).coerceAtLeast(1) },
+                onIncrease = { twoMinuteWarningMinutes += 1 }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingStepper(
                 label = stringResource(R.string.timeout_clock),
                 valueText = "$timeoutSeconds s",
                 onDecrease = { timeoutSeconds = (timeoutSeconds - 5).coerceAtLeast(5) },
@@ -93,6 +103,7 @@ fun CustomTimerScreen(navController: NavController) {
                     AppTimerSettings.flagGameDurationMs = flagMinutes * 60L * 1_000L
                     AppTimerSettings.tackleGameDurationMs = tackleMinutes * 60L * 1_000L
                     AppTimerSettings.timeoutDurationMs = timeoutSeconds * 1_000L
+                    AppTimerSettings.twoMinuteWarningMs = twoMinuteWarningMinutes * 60L * 1_000L
                     navController.popBackStack()
                 },
                 modifier = Modifier.width(110.dp),
