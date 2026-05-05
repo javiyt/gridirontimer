@@ -180,6 +180,39 @@ class MainActivityTest {
         assertEquals(1, longPressCount.get())
     }
 
+    @Test
+    fun `stem 1 key press is consumed`() {
+        val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+
+        val consumed = activity.dispatchKeyEvent(
+            KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_STEM_1)
+        )
+
+        assertTrue(consumed)
+    }
+
+    @Test
+    fun `stem 2 key press is consumed`() {
+        val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+
+        val consumed = activity.dispatchKeyEvent(
+            KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_STEM_2)
+        )
+
+        assertTrue(consumed)
+    }
+
+    @Test
+    fun `stem 3 key press is consumed`() {
+        val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+
+        val consumed = activity.dispatchKeyEvent(
+            KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_STEM_3)
+        )
+
+        assertTrue(consumed)
+    }
+
     private fun setPrivateHandler(activity: MainActivity, fieldName: String, callback: () -> Unit) {
         val field = activity.javaClass.getDeclaredField(fieldName)
         field.isAccessible = true

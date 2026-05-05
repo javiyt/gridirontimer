@@ -71,4 +71,17 @@ class PlayClockViewModelTest {
         assertTrue(viewModel.state.value is TimerState.Idle)
         assertEquals(7_000L, viewModel.time.value)
     }
+
+    @Test
+    fun `onCleared cancels running timer`() {
+        val scheduler = FakeCountdownScheduler()
+        val viewModel = PlayClockViewModel(scheduler)
+        viewModel.startTimer(5_000L)
+
+        val method = viewModel.javaClass.getDeclaredMethod("onCleared")
+        method.isAccessible = true
+        method.invoke(viewModel)
+
+        assertTrue(scheduler.latest().canceled)
+    }
 }
