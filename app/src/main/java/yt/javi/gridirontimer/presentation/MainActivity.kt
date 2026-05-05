@@ -27,6 +27,7 @@ import yt.javi.gridirontimer.presentation.theme.GridironTimerTheme
 import yt.javi.gridirontimer.presentation.viewmodel.AppTimerSettings
 import yt.javi.gridirontimer.presentation.views.CustomTimerScreen
 import yt.javi.gridirontimer.presentation.views.MainScreen
+import yt.javi.gridirontimer.presentation.views.StemHandlerCallbacks
 import yt.javi.gridirontimer.presentation.views.TimerScreen
 
 class MainActivity : ComponentActivity() {
@@ -208,10 +209,12 @@ class MainActivity : ComponentActivity() {
                     isFlagMode = isFlagMode,
                     timerConfig = AppTimerSettings.asTimerConfig(),
                     isAmbientMode = isAmbient,
-                    onStemPrimaryHandlerChange = { handler -> onStemPrimaryPressed = handler },
-                    onStemPrimaryDoubleHandlerChange = { handler -> onStemPrimaryDoublePressed = handler },
-                    onStemPrimaryTripleHandlerChange = { handler -> onStemPrimaryTriplePressed = handler },
-                    onStemPrimaryLongHandlerChange = { handler -> onStemPrimaryLongPressed = handler }
+                    stemHandlerCallbacks = StemHandlerCallbacks(
+                        onPrimaryChange = { handler -> onStemPrimaryPressed = handler },
+                        onPrimaryDoubleChange = { handler -> onStemPrimaryDoublePressed = handler },
+                        onPrimaryTripleChange = { handler -> onStemPrimaryTriplePressed = handler },
+                        onPrimaryLongChange = { handler -> onStemPrimaryLongPressed = handler }
+                    )
                 )
             }
             composable(Screen.CustomTimer.route) { CustomTimerScreen(navController) }

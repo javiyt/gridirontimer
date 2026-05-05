@@ -72,6 +72,13 @@ data class GameAndPlayClockScreenState(
     val timeoutViewModel: TimeoutViewModel
 )
 
+data class StemHandlerCallbacks(
+    val onPrimaryChange: (((() -> Unit)?) -> Unit)? = null,
+    val onPrimaryDoubleChange: (((() -> Unit)?) -> Unit)? = null,
+    val onPrimaryTripleChange: (((() -> Unit)?) -> Unit)? = null,
+    val onPrimaryLongChange: (((() -> Unit)?) -> Unit)? = null,
+)
+
 data class GameAndPlayClockScreenCallbacks(
     val startFlagPlayClock25: () -> Unit,
     val startSevenSecondClock: () -> Unit,
@@ -101,10 +108,7 @@ fun TimerScreen(
     timerConfig: TimerConfig = TimerConfigs.Default,
     viewModels: TimerScreenViewModels = createTimerScreenViewModels(),
     isAmbientMode: Boolean = false,
-    onStemPrimaryHandlerChange: (((() -> Unit)?) -> Unit)? = null,
-    onStemPrimaryDoubleHandlerChange: (((() -> Unit)?) -> Unit)? = null,
-    onStemPrimaryTripleHandlerChange: (((() -> Unit)?) -> Unit)? = null,
-    onStemPrimaryLongHandlerChange: (((() -> Unit)?) -> Unit)? = null,
+    stemHandlerCallbacks: StemHandlerCallbacks = StemHandlerCallbacks(),
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -136,21 +140,9 @@ fun TimerScreen(
         }
     }
 
-    val activePlayClockState = if (isFlagMode && sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused)) {
-        sevenSecondClockState
-    } else {
-        playClockState
-    }
-    val activePlayClockRemaining = if (isFlagMode && sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused)) {
-        sevenSecondClockRemaining
-    } else {
-        playClockRemaining
-    }
-    val flagActiveButton = when {
-        sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused) -> FlagActiveButton.SEVEN
-        playClockState in listOf(TimerState.Running, TimerState.Paused) -> FlagActiveButton.TWENTY_FIVE
-        else -> FlagActiveButton.NONE
-    }
+    val activePlayClockState = resolveActivePlayClockState(isFlagMode, sevenSecondClockState, playClockState)
+    val activePlayClockRemaining = resolveActivePlayClockRemaining(isFlagMode, sevenSecondClockState, sevenSecondClockRemaining, playClockRemaining)
+    val flagActiveButton = resolveFlagActiveButton(sevenSecondClockState, playClockState)
     val resetFlagTimers by rememberUpdatedState(newValue = {
         viewModels.playClockViewModel.stopAndReset(timerConfig.flagPlayClockMs)
         viewModels.sevenSecondClockViewModel.stopAndReset(timerConfig.flagSevenSecondMs)
@@ -195,21 +187,21 @@ fun TimerScreen(
         )
     })
 
-    DisposableEffect(onStemPrimaryHandlerChange) {
-        onStemPrimaryHandlerChange?.invoke { stemPrimaryAction() }
-        onDispose { onStemPrimaryHandlerChange?.invoke(null) }
+    DisposableEffect(stemHandlerCallbacks.onPrimaryChange) {
+        stemHandlerCallbacks.onPrimaryChange?.invoke { stemPrimaryAction() }
+        onDispose { stemHandlerCallbacks.onPrimaryChange?.invoke(null) }
     }
-    DisposableEffect(onStemPrimaryDoubleHandlerChange) {
-        onStemPrimaryDoubleHandlerChange?.invoke { stemPrimaryDoubleAction() }
-        onDispose { onStemPrimaryDoubleHandlerChange?.invoke(null) }
+    DisposableEffect(stemHandlerCallbacks.onPrimaryDoubleChange) {
+        stemHandlerCallbacks.onPrimaryDoubleChange?.invoke { stemPrimaryDoubleAction() }
+        onDispose { stemHandlerCallbacks.onPrimaryDoubleChange?.invoke(null) }
     }
-    DisposableEffect(onStemPrimaryTripleHandlerChange) {
-        onStemPrimaryTripleHandlerChange?.invoke { stemPrimaryTripleAction() }
-        onDispose { onStemPrimaryTripleHandlerChange?.invoke(null) }
+    DisposableEffect(stemHandlerCallbacks.onPrimaryTripleChange) {
+        stemHandlerCallbacks.onPrimaryTripleChange?.invoke { stemPrimaryTripleAction() }
+        onDispose { stemHandlerCallbacks.onPrimaryTripleChange?.invoke(null) }
     }
-    DisposableEffect(onStemPrimaryLongHandlerChange) {
-        onStemPrimaryLongHandlerChange?.invoke { stemPrimaryLongAction() }
-        onDispose { onStemPrimaryLongHandlerChange?.invoke(null) }
+    DisposableEffect(stemHandlerCallbacks.onPrimaryLongChange) {
+        stemHandlerCallbacks.onPrimaryLongChange?.invoke { stemPrimaryLongAction() }
+        onDispose { stemHandlerCallbacks.onPrimaryLongChange?.invoke(null) }
     }
 
     // Store the duration for later start when user taps on the time display
@@ -676,6 +668,36 @@ fun TimerPreview() {
             isFlagMode = true
         )
     }
+}
+
+private fun resolveActivePlayClockState(
+    isFlagMode: Boolean,
+    sevenSecondClockState: TimerState,
+    playClockState: TimerState
+): TimerState = if (isFlagMode && sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused)) {
+    sevenSecondClockState
+} else {
+    playClockState
+}
+
+private fun resolveActivePlayClockRemaining(
+    isFlagMode: Boolean,
+    sevenSecondClockState: TimerState,
+    sevenSecondClockRemaining: Long,
+    playClockRemaining: Long
+): Long = if (isFlagMode && sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused)) {
+    sevenSecondClockRemaining
+} else {
+    playClockRemaining
+}
+
+private fun resolveFlagActiveButton(
+    sevenSecondClockState: TimerState,
+    playClockState: TimerState
+): FlagActiveButton = when {
+    sevenSecondClockState in listOf(TimerState.Running, TimerState.Paused) -> FlagActiveButton.SEVEN
+    playClockState in listOf(TimerState.Running, TimerState.Paused) -> FlagActiveButton.TWENTY_FIVE
+    else -> FlagActiveButton.NONE
 }
 
 private fun Long.isTwoMinutesWarning(config: TimerConfig = TimerConfigs.Default) =
