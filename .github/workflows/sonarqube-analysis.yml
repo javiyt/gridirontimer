@@ -47,8 +47,24 @@ jobs:
             --parallel \
             --max-workers=2
 
+      - name: Check Sonar token availability
+        id: sonar-auth
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -n "$SONAR_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: SonarQube Scan
+        if: ${{ steps.sonar-auth.outputs.enabled == 'true' }}
         uses: SonarSource/sonarqube-scan-action@v8
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip SonarQube Scan (missing SONAR_TOKEN)
+        if: ${{ steps.sonar-auth.outputs.enabled != 'true' }}
+        run: echo "Skipping SonarQube scan because SONAR_TOKEN is not available for this workflow run."
