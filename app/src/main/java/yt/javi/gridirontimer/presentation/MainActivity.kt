@@ -14,8 +14,12 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import androidx.wear.ambient.AmbientLifecycleObserver
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
@@ -23,6 +27,7 @@ import yt.javi.gridirontimer.presentation.theme.GridironTimerTheme
 import yt.javi.gridirontimer.presentation.viewmodel.AppTimerSettings
 import yt.javi.gridirontimer.presentation.views.CustomTimerScreen
 import yt.javi.gridirontimer.presentation.views.MainScreen
+import yt.javi.gridirontimer.presentation.views.StemHandlerCallbacks
 import yt.javi.gridirontimer.presentation.views.TimerScreen
 
 class MainActivity : ComponentActivity() {
@@ -37,12 +42,39 @@ class MainActivity : ComponentActivity() {
     private var pendingDoublePress: Runnable? = null
     private var stemPrimaryDownTime = 0L
 
+    private var isAmbientMode by mutableStateOf(false)
+
+    private val ambientCallback = object : AmbientLifecycleObserver.AmbientLifecycleCallback {
+        override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+            isAmbientMode = true
+        }
+
+        override fun onExitAmbient() {
+            isAmbientMode = false
+        }
+
+        override fun onUpdateAmbient() {
+            // Optional: Handle periodic updates (once per minute)
+        }
+    }
+
+    private var ambientObserver: AmbientLifecycleObserver? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        try {
+            ambientObserver = AmbientLifecycleObserver(this, ambientCallback).also {
+                lifecycle.addObserver(it)
+            }
+        } catch (e: NoClassDefFoundError) {
+            // Handling for environments where Wearable classes are missing (e.g. some unit tests)
+        }
+
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent {
             GridironTimerTheme {
-                WearApp()
+                WearApp(isAmbientMode)
             }
         }
     }
@@ -154,7 +186,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun WearApp() {
+    fun WearApp(isAmbient: Boolean) {
         val navController = rememberSwipeDismissableNavController()
         SwipeDismissableNavHost(
             navController = navController,
@@ -176,10 +208,13 @@ class MainActivity : ComponentActivity() {
                     navController = navController,
                     isFlagMode = isFlagMode,
                     timerConfig = AppTimerSettings.asTimerConfig(),
-                    onStemPrimaryHandlerChange = { handler -> onStemPrimaryPressed = handler },
-                    onStemPrimaryDoubleHandlerChange = { handler -> onStemPrimaryDoublePressed = handler },
-                    onStemPrimaryTripleHandlerChange = { handler -> onStemPrimaryTriplePressed = handler },
-                    onStemPrimaryLongHandlerChange = { handler -> onStemPrimaryLongPressed = handler }
+                    isAmbientMode = isAmbient,
+                    stemHandlerCallbacks = StemHandlerCallbacks(
+                        onPrimaryChange = { handler -> onStemPrimaryPressed = handler },
+                        onPrimaryDoubleChange = { handler -> onStemPrimaryDoublePressed = handler },
+                        onPrimaryTripleChange = { handler -> onStemPrimaryTriplePressed = handler },
+                        onPrimaryLongChange = { handler -> onStemPrimaryLongPressed = handler }
+                    )
                 )
             }
             composable(Screen.CustomTimer.route) { CustomTimerScreen(navController) }
@@ -192,6 +227,9 @@ class MainActivity : ComponentActivity() {
      */
     private fun isControlButton(keyCode: Int, event: KeyEvent): Boolean {
         return keyCode == KeyEvent.KEYCODE_STEM_PRIMARY ||
+               keyCode == KeyEvent.KEYCODE_STEM_1 ||
+               keyCode == KeyEvent.KEYCODE_STEM_2 ||
+               keyCode == KeyEvent.KEYCODE_STEM_3 ||
                keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
                keyCode == KeyEvent.KEYCODE_DPAD_UP ||
                (keyCode == KeyEvent.KEYCODE_UNKNOWN && event.scanCode == VOLUME_BUTTON_SCAN_CODE)

@@ -39,7 +39,7 @@ class MainActivityTest {
         assertTrue(consumed)
         assertEquals(0, singlePressCount.get())
 
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(360))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(400))
         assertEquals(1, singlePressCount.get())
     }
 
@@ -61,7 +61,7 @@ class MainActivityTest {
             KeyEvent.KEYCODE_STEM_PRIMARY,
             KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_STEM_PRIMARY)
         )
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(400))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(450))
 
         assertEquals(0, singlePressCount.get())
         assertEquals(1, doublePressCount.get())
@@ -100,7 +100,7 @@ class MainActivityTest {
             KeyEvent.KEYCODE_STEM_PRIMARY,
             KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_STEM_PRIMARY)
         )
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(400))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(450))
 
         assertEquals(0, singlePressCount.get())
         assertEquals(1, doublePressCount.get())
@@ -118,14 +118,14 @@ class MainActivityTest {
             KeyEvent.KEYCODE_STEM_PRIMARY,
             KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_STEM_PRIMARY)
         )
-        ShadowSystemClock.advanceBy(Duration.ofMillis(500))
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(500))
+        ShadowSystemClock.advanceBy(Duration.ofMillis(600))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(600))
         setPrivateLong(activity, "lastStemPrimaryPressAt", 0L)
         activity.onKeyDown(
             KeyEvent.KEYCODE_STEM_PRIMARY,
             KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_STEM_PRIMARY)
         )
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(400))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(450))
 
         assertEquals(2, singlePressCount.get())
         assertEquals(0, doublePressCount.get())
@@ -149,7 +149,7 @@ class MainActivityTest {
             ShadowSystemClock.advanceBy(Duration.ofMillis(100))
             shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(100))
         }
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(500))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(600))
 
         assertEquals(0, singlePressCount.get())
         assertEquals(0, doublePressCount.get())
@@ -169,25 +169,58 @@ class MainActivityTest {
             KeyEvent.KEYCODE_STEM_PRIMARY,
             KeyEvent(downTime, downTime, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_STEM_PRIMARY, 0)
         )
-        ShadowSystemClock.advanceBy(Duration.ofMillis(600))
+        ShadowSystemClock.advanceBy(Duration.ofMillis(700))
         activity.onKeyUp(
             KeyEvent.KEYCODE_STEM_PRIMARY,
-            KeyEvent(downTime, downTime + 600, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_STEM_PRIMARY, 0)
+            KeyEvent(downTime, downTime + 700, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_STEM_PRIMARY, 0)
         )
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(500))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(600))
 
         assertEquals(0, singlePressCount.get())
         assertEquals(1, longPressCount.get())
     }
 
+    @Test
+    fun `stem 1 key press is consumed`() {
+        val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+
+        val consumed = activity.dispatchKeyEvent(
+            KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_STEM_1)
+        )
+
+        assertTrue(consumed)
+    }
+
+    @Test
+    fun `stem 2 key press is consumed`() {
+        val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+
+        val consumed = activity.dispatchKeyEvent(
+            KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_STEM_2)
+        )
+
+        assertTrue(consumed)
+    }
+
+    @Test
+    fun `stem 3 key press is consumed`() {
+        val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+
+        val consumed = activity.dispatchKeyEvent(
+            KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_STEM_3)
+        )
+
+        assertTrue(consumed)
+    }
+
     private fun setPrivateHandler(activity: MainActivity, fieldName: String, callback: () -> Unit) {
-        val field = MainActivity::class.java.getDeclaredField(fieldName)
+        val field = activity.javaClass.getDeclaredField(fieldName)
         field.isAccessible = true
         field.set(activity, callback)
     }
 
     private fun setPrivateLong(activity: MainActivity, fieldName: String, value: Long) {
-        val field = MainActivity::class.java.getDeclaredField(fieldName)
+        val field = activity.javaClass.getDeclaredField(fieldName)
         field.isAccessible = true
         field.setLong(activity, value)
     }

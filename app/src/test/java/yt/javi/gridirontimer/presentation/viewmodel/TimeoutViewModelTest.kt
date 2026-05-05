@@ -69,4 +69,39 @@ class TimeoutViewModelTest {
         assertTrue(viewModel.state.value is TimerState.Idle)
         assertTrue(scheduler.latest().canceled)
     }
+
+    @Test
+    fun `stopTimer from paused sets idle`() {
+        val scheduler = FakeCountdownScheduler()
+        val viewModel = TimeoutViewModel(scheduler)
+        viewModel.startTimer()
+        viewModel.pauseTimer()
+
+        viewModel.stopTimer()
+
+        assertTrue(viewModel.state.value is TimerState.Idle)
+    }
+
+    @Test
+    fun `stopTimer when idle is a no-op`() {
+        val scheduler = FakeCountdownScheduler()
+        val viewModel = TimeoutViewModel(scheduler)
+
+        viewModel.stopTimer()
+
+        assertTrue(viewModel.state.value is TimerState.Idle)
+    }
+
+    @Test
+    fun `onCleared cancels running timer`() {
+        val scheduler = FakeCountdownScheduler()
+        val viewModel = TimeoutViewModel(scheduler)
+        viewModel.startTimer()
+
+        val method = viewModel.javaClass.getDeclaredMethod("onCleared")
+        method.isAccessible = true
+        method.invoke(viewModel)
+
+        assertTrue(scheduler.latest().canceled)
+    }
 }
