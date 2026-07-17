@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "yt.javi.gridirontimer"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "yt.javi.gridirontimer"
