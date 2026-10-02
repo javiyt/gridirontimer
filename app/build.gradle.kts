@@ -45,6 +45,21 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
+            all {
+                it.jvmArgs(
+                    "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                    "--add-opens=java.base/java.util=ALL-UNNAMED",
+                    "--add-opens=java.base/java.io=ALL-UNNAMED",
+                    "--add-opens=java.base/java.net=ALL-UNNAMED",
+                    "--add-opens=java.base/java.nio=ALL-UNNAMED",
+                    "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+                    "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+                    "--add-opens=java.base/java.text=ALL-UNNAMED",
+                    "--add-opens=java.base/java.time=ALL-UNNAMED",
+                    "--add-opens=java.desktop/java.awt=ALL-UNNAMED",
+                    "--add-opens=java.xml/javax.xml=ALL-UNNAMED"
+                )
+            }
         }
     }
 }
@@ -55,7 +70,6 @@ jacoco {
 
 tasks.withType<Test>().configureEach {
     useJUnit()
-    jvmArgs("--add-opens=java.base/java.lang=ALL-UNNAMED")
     
     // Enable parallel test execution
     maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
