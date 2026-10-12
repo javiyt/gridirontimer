@@ -1,7 +1,7 @@
 [versions]
 agp = "9.4.1"
 composeNavigation = "1.7.0"
-kotlin = "2.4.20"
+kotlin = "2.4.21"
 lifecycleRuntimeKtx = "2.11.0"
 playServicesWearable = "20.0.1"
 composeBom = "2026.09.00"
